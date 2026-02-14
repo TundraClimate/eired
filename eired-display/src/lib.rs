@@ -334,6 +334,10 @@ pub struct Layer {
 }
 
 impl Layer {
+    pub fn inner(&self) -> &[Annot<Span>] {
+        &self.spans
+    }
+
     fn push_span(&mut self, span: Annot<Span>) {
         let end_pos = span.outer_apex_pos();
 
@@ -488,6 +492,16 @@ impl Layer {
 
         new_layer
     }
+
+    pub fn add_offset(&mut self, offset: (u16, u16)) {
+        self.width += offset.0;
+        self.height += offset.1;
+
+        for span in self.spans.iter_mut() {
+            span.base_x += offset.0;
+            span.base_y += offset.1;
+        }
+    }
 }
 
 impl Debug for Layer {
@@ -528,13 +542,7 @@ impl Canvas {
     pub fn merge(&mut self, offset: (u16, u16), z_index: usize, layer: Layer) {
         let mut new_layer = layer;
 
-        new_layer.width += offset.0;
-        new_layer.height += offset.1;
-
-        for span in new_layer.spans.iter_mut() {
-            span.base_x += offset.0;
-            span.base_y += offset.1;
-        }
+        new_layer.add_offset(offset);
 
         let merged_layer = match self.layers.get(&z_index) {
             Some(layer) => layer.overlap(new_layer),
@@ -556,7 +564,7 @@ impl Canvas {
         let mut view: Vec<Option<Cell>> = vec![None; self.height as usize * self.width as usize];
 
         for (_, layer) in self.layers.iter() {
-            for span in layer.spans.iter() {
+            for span in layer.inner().iter() {
                 let (span_x, span_y) = span.base_pos();
 
                 for (i, cell) in span.inner().cells.range(0..span.width as usize).enumerate() {
