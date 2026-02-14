@@ -16,3 +16,6 @@ description = "eired is tui utility library"
 readme = "README.md"
 authors = ["Tundra_Climate <tundra.tundere@gmail.com>"]
 repository = "https://github.com/TundraClimate/eired"
+
+[workspace.dependencies]
+crossterm = "0.29.0"
