@@ -566,8 +566,12 @@ impl Canvas {
         for (_, layer) in self.layers.iter() {
             for span in layer.inner().iter() {
                 let (span_x, span_y) = span.base_pos();
+                let cells = span.inner().to_vec();
+                let Some(cells) = cells.get(0..span.width as usize) else {
+                    continue;
+                };
 
-                for (i, cell) in span.inner().cells.range(0..span.width as usize).enumerate() {
+                for (i, cell) in cells.iter().enumerate() {
                     let index = (span_y * span.width + span_x) as usize + i;
 
                     view[index] = Some(*cell);
