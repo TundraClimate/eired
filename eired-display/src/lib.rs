@@ -252,7 +252,7 @@ impl Span {
     }
 
     pub fn split_by(&self, indecies: &[u16]) -> Vec<Option<Span>> {
-        debug_assert!(!indecies.is_sorted(), "indecies not sorted");
+        debug_assert!(indecies.is_sorted(), "indecies not sorted");
 
         let mut res = vec![];
         let mut i = 0usize;
@@ -265,6 +265,8 @@ impl Span {
 
             i = j;
         }
+
+        res.push(cells.get(i..).map(|c| Span::from_iter(c.iter().copied())));
 
         res
     }
