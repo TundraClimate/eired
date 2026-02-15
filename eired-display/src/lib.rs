@@ -642,6 +642,10 @@ impl View {
     }
 
     pub fn get_line(&self, rows: u16) -> &[Option<Cell>] {
+        if rows >= self.height() {
+            return &[];
+        }
+
         let start = (self.width * rows) as usize;
         let end = (self.width * (rows + 1)) as usize;
 
