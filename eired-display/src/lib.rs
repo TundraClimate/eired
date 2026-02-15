@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::mem;
+use std::slice::Iter;
+use std::vec::IntoIter;
 
 use crossterm::style::Color;
 
@@ -619,6 +621,14 @@ impl View {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.cells.is_empty()
+    }
+
     pub fn width(&self) -> u16 {
         self.width
     }
@@ -627,11 +637,33 @@ impl View {
         self.height
     }
 
+    pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
+        self.cells.iter()
+    }
+
     pub fn get_line(&self, rows: u16) -> &[Option<Cell>] {
         let start = (self.width * rows) as usize;
         let end = (self.width * (rows + 1)) as usize;
 
         &self.cells[start..end]
+    }
+}
+
+impl IntoIterator for View {
+    type Item = Option<Cell>;
+    type IntoIter = IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cells.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a View {
+    type Item = &'a Option<Cell>;
+    type IntoIter = Iter<'a, Option<Cell>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cells.iter()
     }
 }
 
