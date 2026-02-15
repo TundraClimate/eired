@@ -347,45 +347,61 @@ impl Layer {
         self.spans.push(span);
     }
 
-    fn resolve_conflict(span: &Annot<Span>, begin: u16, end: u16) -> Vec<Annot<Span>> {
-        let is_include_begin = span.contains_pos(begin, 0);
-        let is_include_end = span.contains_pos(end - 1, 0);
+    fn resolve_conflict(base: Annot<Span>, overlap: &Annot<Span>) -> Vec<Annot<Span>> {
+        if !base.is_conflict(overlap) {
+            return vec![base];
+        }
+
+        let (overlap_begin, overlap_end) = (overlap.base_pos().0, overlap.outer_apex_pos().0);
+        let is_include_begin = base.contains_pos(overlap_begin, 0);
+        let is_include_end = base.contains_pos(overlap_end - 1, 0);
+        let (base_x, base_y) = base.base_pos();
         let mut solved = vec![];
 
         match (is_include_begin, is_include_end) {
             (true, true) => {
-                let mut parts = span.inner().split_by(&[begin, end]);
+                let (rel_begin, rel_end) = (overlap_begin - base_x, overlap_end - base_x);
+                let mut parts = base.inner().split_by(&[rel_begin, rel_end]);
 
                 debug_assert!(parts.len() == 3, "Span::split_by impl error");
 
-                solved.extend([parts[0].take(), parts[2].take()]);
+                solved.extend([
+                    parts[0]
+                        .take()
+                        .map(|p| Annot::new((base_x, base_y), p.len(), 1, p)),
+                    parts[2]
+                        .take()
+                        .map(|p| Annot::new((overlap_end, base_y), p.len(), 1, p)),
+                ]);
             }
             (true, false) => {
-                let mut parts = span.inner().split_by(&[begin]);
+                let rel_begin = overlap_begin - base_x;
+                let mut parts = base.inner().split_by(&[rel_begin]);
 
                 debug_assert!(parts.len() == 2, "Span::split_by impl error");
 
-                solved.push(parts[0].take());
+                solved.push(
+                    parts[0]
+                        .take()
+                        .map(|p| Annot::new((base_x, base_y), p.len(), 1, p)),
+                );
             }
             (false, true) => {
-                let mut parts = span.inner().split_by(&[end]);
+                let rel_end = overlap_end - base_x;
+                let mut parts = base.inner().split_by(&[rel_end]);
 
                 debug_assert!(parts.len() == 2, "Span::split_by impl error");
 
-                solved.push(parts[1].take());
+                solved.push(
+                    parts[1]
+                        .take()
+                        .map(|p| Annot::new((overlap_end, base_y), p.len(), 1, p)),
+                );
             }
             (false, false) => {}
         }
 
-        let (mut base_x, base_y) = span.base_pos();
-
-        solved
-            .into_iter()
-            .filter_map(|e| {
-                e.map(|elem| Annot::new((base_x, base_y), elem.len(), 1, elem))
-                    .inspect(|elem| base_x += elem.width)
-            })
-            .collect()
+        solved.into_iter().flatten().collect()
     }
 
     pub fn push_span_write(&mut self, span: Annot<Span>) {
@@ -394,16 +410,9 @@ impl Layer {
         }
 
         let mut tmp = vec![];
-        let (begin, end) = (span.base_pos().0, span.outer_apex_pos().0);
 
         while let Some(i_span) = self.spans.pop() {
-            if !i_span.is_conflict(&span) {
-                tmp.push(i_span);
-
-                continue;
-            }
-
-            tmp.extend(Self::resolve_conflict(&i_span, begin, end));
+            tmp.extend(Self::resolve_conflict(i_span, &span));
         }
 
         for elem in tmp {
@@ -413,7 +422,7 @@ impl Layer {
         }
 
         debug_assert!(
-            !self.spans.iter().any(|s| s.is_conflict(&span)),
+            self.spans.iter().all(|s| !s.is_conflict(&span)),
             "Layer::push_span_write impl error"
         );
 
@@ -452,13 +461,11 @@ impl Layer {
             }
 
             for i_span in conflicts.iter() {
-                let (begin, end) = (i_span.base_pos().0, i_span.outer_apex_pos().0);
-
-                tmp_deque.extend(Self::resolve_conflict(&tmp_elem, begin, end).into_iter());
+                tmp_deque.extend(Self::resolve_conflict(tmp_elem.clone(), i_span).into_iter());
             }
         }
 
-        debug_assert!(!tmp_deque.is_empty(), "Layer::push_span_fixed impl error");
+        debug_assert!(tmp_deque.is_empty(), "Layer::push_span_fixed impl error");
 
         self.spans.retain(|s| !s.is_empty());
 
@@ -523,6 +530,10 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    pub fn inner_vec(&self) -> Vec<(&usize, &Layer)> {
+        self.layers.iter().collect::<Vec<_>>()
+    }
+
     fn apply_layer(&mut self, z_index: usize, layer: Layer) {
         self.width = self.width.max(layer.width);
         self.height = self.height.max(layer.height);
@@ -539,10 +550,8 @@ impl Canvas {
         self.apply_layer(z_index, layer);
     }
 
-    pub fn merge(&mut self, offset: (u16, u16), z_index: usize, layer: Layer) {
-        let mut new_layer = layer;
-
-        new_layer.add_offset(offset);
+    pub fn merge(&mut self, z_index: usize, layer: Layer) {
+        let new_layer = layer;
 
         let merged_layer = match self.layers.get(&z_index) {
             Some(layer) => layer.overlap(new_layer),
@@ -552,11 +561,11 @@ impl Canvas {
         self.apply_layer(z_index, merged_layer);
     }
 
-    pub fn insert_or_merge(&mut self, offset: (u16, u16), z_index: usize, layer: Layer) {
+    pub fn insert_or_merge(&mut self, z_index: usize, layer: Layer) {
         if self.layers.contains_key(&z_index) {
-            self.insert(z_index, layer);
+            self.merge(z_index, layer);
         } else {
-            self.merge(offset, z_index, layer);
+            self.insert(z_index, layer);
         }
     }
 
