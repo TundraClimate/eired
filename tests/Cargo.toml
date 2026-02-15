@@ -3,3 +3,7 @@ name = "tests"
 version = "0.0.0"
 publish = false
 edition.workspace = true
+
+[dependencies]
+eired-display = { path = "../eired-display" }
+crossterm.workspace = true
