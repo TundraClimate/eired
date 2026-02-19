@@ -7,6 +7,7 @@ use std::vec::IntoIter;
 
 use crossterm::style::Color;
 
+/// An annotation of coords for struct.
 pub struct Annot<T> {
     base_x: u16,
     base_y: u16,
@@ -16,6 +17,7 @@ pub struct Annot<T> {
 }
 
 impl<T> Annot<T> {
+    /// Wrap struct with annot.
     pub fn new(base: (u16, u16), width: u16, height: u16, inner: T) -> Self {
         Self {
             base_x: base.0,
@@ -26,14 +28,17 @@ impl<T> Annot<T> {
         }
     }
 
+    /// Returns `true` was inner is empty.
     pub fn is_empty(&self) -> bool {
         self.width == 0 || self.height == 0
     }
 
+    /// Returns base position of annot.
     pub fn base_pos(&self) -> (u16, u16) {
         (self.base_x, self.base_y)
     }
 
+    /// Returns lower bound apex position of annot.
     pub fn inner_apex_pos(&self) -> (u16, u16) {
         (
             self.base_x + self.width.max(1) - 1,
@@ -41,10 +46,12 @@ impl<T> Annot<T> {
         )
     }
 
+    /// Returns upeer bound apex position of annot.
     pub fn outer_apex_pos(&self) -> (u16, u16) {
         (self.base_x + self.width, self.base_y + self.height)
     }
 
+    /// Returns `true` with conflicts is `self` and `other`.
     pub fn is_conflict<A>(&self, other: &Annot<A>) -> bool {
         if self.is_empty() || other.is_empty() {
             return false;
@@ -61,16 +68,19 @@ impl<T> Annot<T> {
             && other_outer_y > self_base_y
     }
 
+    /// Returns `true` with coords is contains annot area.
     pub fn contains_pos(&self, rel_x: u16, rel_y: u16) -> bool {
         let dummy: Annot<Option<Cell>> = Annot::new((rel_x, rel_y), 1, 1, None);
 
         self.is_conflict(&dummy)
     }
 
+    /// Get inner ref.
     pub fn inner(&self) -> &T {
         &self.inner
     }
 
+    /// Ger inner ref mut.
     pub fn inner_mut(&mut self) -> &mut T {
         &mut self.inner
     }
@@ -111,6 +121,7 @@ impl<T: PartialEq> PartialEq for Annot<T> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+/// A struct of corresponds terminal 1 pixel.
 pub struct Cell {
     pub ch: char,
     pub fg: Color,
@@ -118,10 +129,12 @@ pub struct Cell {
 }
 
 impl Cell {
+    /// Create new cell.
     pub fn new(ch: char) -> Self {
         Self::from(ch)
     }
 
+    /// Create new cell with foreground.
     pub fn new_fg(ch: char, fg: Color) -> Self {
         Self {
             ch,
@@ -130,6 +143,7 @@ impl Cell {
         }
     }
 
+    /// Create new cell with background.
     pub fn new_bg(ch: char, bg: Color) -> Self {
         Self {
             ch,
@@ -169,12 +183,14 @@ impl Debug for Cell {
 }
 
 #[derive(Default, PartialEq, Eq)]
+/// A list wrapper of lined cells.
 pub struct Span {
     len: u16,
     cells: VecDeque<Cell>,
 }
 
 impl Span {
+    /// Create new span with background.
     pub fn new_with_bg<S: AsRef<str>>(cells: S, color: Color) -> Self {
         let mut span = Span::from(cells.as_ref());
 
@@ -183,6 +199,7 @@ impl Span {
         span
     }
 
+    /// Create new span with foreground.
     pub fn new_with_fg<S: AsRef<str>>(cells: S, color: Color) -> Self {
         let mut span = Span::from(cells.as_ref());
 
@@ -191,36 +208,44 @@ impl Span {
         span
     }
 
+    /// Get 1 cell ref by `idx`.
     pub fn get(&self, idx: usize) -> Option<&Cell> {
         self.cells.get(idx)
     }
 
+    /// Get 1 cell ref mut by `idx`.
     pub fn get_mut(&mut self, idx: usize) -> Option<&mut Cell> {
         self.cells.get_mut(idx)
     }
 
+    /// Replaces at `idx` cell.
     pub fn replace_at(&mut self, idx: usize, cell: Cell) -> Option<Cell> {
         self.get_mut(idx).map(|before| mem::replace(before, cell))
     }
 
+    /// Returns span length.
     pub fn len(&self) -> u16 {
         self.len
     }
 
+    /// Returns `true` was length is zero.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Pushes cell to back of span.
     pub fn push_back(&mut self, cell: Cell) {
         self.len += 1;
         self.cells.push_back(cell);
     }
 
+    /// Pushes cell to front of span.
     pub fn push_front(&mut self, cell: Cell) {
         self.len += 1;
         self.cells.push_front(cell);
     }
 
+    /// Pops cell from back of span.
     pub fn pop_back(&mut self) -> Option<Cell> {
         if !self.is_empty() {
             self.len -= 1;
@@ -229,6 +254,7 @@ impl Span {
         self.cells.pop_back()
     }
 
+    /// Pops cell from front of span.
     pub fn pop_front(&mut self) -> Option<Cell> {
         if !self.is_empty() {
             self.len -= 1;
@@ -237,6 +263,7 @@ impl Span {
         self.cells.pop_front()
     }
 
+    /// Truncates `num` cells to front.
     pub fn truncate_front(&mut self, num: u16) {
         let tmp = self.cells.drain(num as usize..).collect();
 
@@ -244,15 +271,18 @@ impl Span {
         self.cells = tmp;
     }
 
+    /// Truncates `num` cells to back.
     pub fn truncate_back(&mut self, num: u16) {
         self.len = self.len().max(num) - num;
         self.cells.truncate(self.len() as usize);
     }
 
+    /// Returns copied span to [Vec].
     pub fn to_vec(&self) -> Vec<Cell> {
         self.cells.iter().copied().collect()
     }
 
+    /// Returns span parts by split indecies.
     pub fn split_by(&self, indecies: &[u16]) -> Vec<Option<Span>> {
         debug_assert!(indecies.is_sorted(), "indecies not sorted");
 
@@ -329,6 +359,7 @@ impl Debug for Span {
 }
 
 #[derive(Default, PartialEq, Eq)]
+/// A layer of merged spans.
 pub struct Layer {
     width: u16,
     height: u16,
@@ -336,6 +367,7 @@ pub struct Layer {
 }
 
 impl Layer {
+    /// Get inner slice.
     pub fn inner(&self) -> &[Annot<Span>] {
         &self.spans
     }
@@ -406,6 +438,7 @@ impl Layer {
         solved.into_iter().flatten().collect()
     }
 
+    /// Pushes span that overlap other spans.
     pub fn push_span_write(&mut self, span: Annot<Span>) {
         if span.is_empty() {
             return;
@@ -431,6 +464,7 @@ impl Layer {
         self.push_span(span);
     }
 
+    /// Pushes size fixed span by other spans.
     pub fn push_span_fixed(&mut self, span: Annot<Span>) {
         if span.is_empty() {
             return;
@@ -478,6 +512,7 @@ impl Layer {
         }
     }
 
+    /// Pushes span if not conflict other spans.
     pub fn push_span_only_valid(&mut self, span: Annot<Span>) {
         if span.is_empty() || self.spans.iter().any(|s| s.is_conflict(&span)) {
             return;
@@ -487,6 +522,7 @@ impl Layer {
         self.push_span(span);
     }
 
+    /// Create overlaps another layer to `self`.
     pub fn overlap(&self, upper: Layer) -> Layer {
         let mut new_layer = Layer::default();
         let init_spans = self.spans.to_vec();
@@ -502,6 +538,7 @@ impl Layer {
         new_layer
     }
 
+    /// Adds offset to left top.
     pub fn add_offset(&mut self, offset: (u16, u16)) {
         self.width += offset.0;
         self.height += offset.1;
@@ -524,6 +561,7 @@ impl Debug for Layer {
 }
 
 #[derive(Default, PartialEq, Eq)]
+/// A canvas of non merged layers.
 pub struct Canvas {
     front: usize,
     width: u16,
@@ -532,6 +570,7 @@ pub struct Canvas {
 }
 
 impl Canvas {
+    /// Get inner mapping ref.
     pub fn inner_vec(&self) -> Vec<(&usize, &Layer)> {
         self.layers.iter().collect::<Vec<_>>()
     }
@@ -544,14 +583,17 @@ impl Canvas {
         self.front = self.front.max(z_index + 1);
     }
 
+    /// Overlaps `layer` to top.
     pub fn overlap_layer(&mut self, layer: Layer) {
         self.apply_layer(self.front, layer);
     }
 
+    /// Insert `layer` to `z_index`.
     pub fn insert(&mut self, z_index: usize, layer: Layer) {
         self.apply_layer(z_index, layer);
     }
 
+    /// Merge `layer` to `z_index`, or insert if not found `z_index` layer.
     pub fn merge(&mut self, z_index: usize, layer: Layer) {
         let new_layer = layer;
 
@@ -563,6 +605,7 @@ impl Canvas {
         self.apply_layer(z_index, merged_layer);
     }
 
+    /// Insert `layer` to `z_index` if not found, or merge if found.
     pub fn insert_or_merge(&mut self, z_index: usize, layer: Layer) {
         if self.layers.contains_key(&z_index) {
             self.merge(z_index, layer);
@@ -571,6 +614,7 @@ impl Canvas {
         }
     }
 
+    /// Create a [View] from `self`.
     pub fn create_view(&self) -> View {
         let mut view: Vec<Option<Cell>> = vec![None; self.height as usize * self.width as usize];
 
@@ -606,6 +650,7 @@ impl Debug for Canvas {
 }
 
 #[derive(PartialEq, Eq)]
+/// An immutable list of cells for terminal area.
 pub struct View {
     width: u16,
     height: u16,
@@ -613,6 +658,7 @@ pub struct View {
 }
 
 impl View {
+    /// Create new struct.
     pub fn new(width: u16, height: u16, cells: Vec<Option<Cell>>) -> Self {
         Self {
             width,
@@ -621,26 +667,32 @@ impl View {
         }
     }
 
+    /// Returns cell list length.
     pub fn len(&self) -> usize {
         self.cells.len()
     }
 
+    /// Returns `true` was inner is empty.
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
     }
 
+    /// Returns area width.
     pub fn width(&self) -> u16 {
         self.width
     }
 
+    /// Returns area height.
     pub fn height(&self) -> u16 {
         self.height
     }
 
+    /// Get inner iter.
     pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
         self.cells.iter()
     }
 
+    /// Get slice from `row`.
     pub fn get_line(&self, rows: u16) -> &[Option<Cell>] {
         if rows >= self.height() {
             return &[];
