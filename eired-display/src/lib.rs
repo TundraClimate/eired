@@ -11,26 +11,17 @@ use crossterm::style::Color;
 pub struct Annot<T> {
     base_x: u16,
     base_y: u16,
-    pub width: u16,
-    pub height: u16,
     inner: T,
 }
 
 impl<T> Annot<T> {
     /// Wrap struct with annot.
-    pub fn new(base: (u16, u16), width: u16, height: u16, inner: T) -> Self {
+    pub fn new(base: (u16, u16), inner: T) -> Self {
         Self {
             base_x: base.0,
             base_y: base.1,
-            width,
-            height,
             inner,
         }
-    }
-
-    /// Returns `true` was inner is empty.
-    pub fn is_empty(&self) -> bool {
-        self.width == 0 || self.height == 0
     }
 
     /// Returns base position of annot.
@@ -38,21 +29,52 @@ impl<T> Annot<T> {
         (self.base_x, self.base_y)
     }
 
+    /// Get inner ref.
+    pub fn inner(&self) -> &T {
+        &self.inner
+    }
+
+    /// Ger inner ref mut.
+    pub fn inner_mut(&mut self) -> &mut T {
+        &mut self.inner
+    }
+
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+}
+
+impl<T: Annotate> Annot<T> {
+    /// Returns inner width.
+    pub fn width(&self) -> u16 {
+        self.inner().width()
+    }
+
+    /// Returns inner height.
+    pub fn height(&self) -> u16 {
+        self.inner().height()
+    }
+
+    /// Returns `true` was inner is empty.
+    pub fn is_empty(&self) -> bool {
+        self.inner.width() == 0 || self.inner.height() == 0
+    }
+
     /// Returns lower bound apex position of annot.
     pub fn inner_apex_pos(&self) -> (u16, u16) {
         (
-            self.base_x + self.width.max(1) - 1,
-            self.base_y + self.height.max(1) - 1,
+            self.base_x + self.width().max(1) - 1,
+            self.base_y + self.height().max(1) - 1,
         )
     }
 
     /// Returns upeer bound apex position of annot.
     pub fn outer_apex_pos(&self) -> (u16, u16) {
-        (self.base_x + self.width, self.base_y + self.height)
+        (self.base_x + self.width(), self.base_y + self.height())
     }
 
     /// Returns `true` with conflicts is `self` and `other`.
-    pub fn is_conflict<A>(&self, other: &Annot<A>) -> bool {
+    pub fn is_conflict<A: Annotate>(&self, other: &Annot<A>) -> bool {
         if self.is_empty() || other.is_empty() {
             return false;
         }
@@ -70,19 +92,9 @@ impl<T> Annot<T> {
 
     /// Returns `true` with coords is contains annot area.
     pub fn contains_pos(&self, rel_x: u16, rel_y: u16) -> bool {
-        let dummy: Annot<Option<Cell>> = Annot::new((rel_x, rel_y), 1, 1, None);
+        let dummy: Annot<Rect> = Rect::new(1, 1).annotate((rel_x, rel_y));
 
         self.is_conflict(&dummy)
-    }
-
-    /// Get inner ref.
-    pub fn inner(&self) -> &T {
-        &self.inner
-    }
-
-    /// Ger inner ref mut.
-    pub fn inner_mut(&mut self) -> &mut T {
-        &mut self.inner
     }
 }
 
@@ -101,8 +113,6 @@ impl<T: Debug> Debug for Annot<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Annot")
             .field("(cols, rows)", &(self.base_x, self.base_y))
-            .field("width", &self.width)
-            .field("height", &self.height)
             .field("inner", &self.inner)
             .finish()
     }
@@ -112,11 +122,46 @@ impl<T: PartialEq> Eq for Annot<T> {}
 
 impl<T: PartialEq> PartialEq for Annot<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.base_x == other.base_x
-            && self.base_y == other.base_y
-            && self.width == other.width
-            && self.height == other.height
-            && self.inner == other.inner
+        self.base_x == other.base_x && self.base_y == other.base_y && self.inner == other.inner
+    }
+}
+
+pub trait Annotate {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized;
+
+    fn get_size(&self) -> (u16, u16);
+
+    fn width(&self) -> u16 {
+        self.get_size().0
+    }
+
+    fn height(&self) -> u16 {
+        self.get_size().1
+    }
+}
+
+/// A marker struct that represents area.
+pub struct Rect(pub u16, pub u16);
+
+impl Rect {
+    /// Create new rect.
+    pub fn new(width: u16, height: u16) -> Self {
+        Self(width, height)
+    }
+}
+
+impl Annotate for Rect {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (self.0, self.1)
     }
 }
 
@@ -179,6 +224,19 @@ impl Debug for Cell {
             .field("fg", &self.fg)
             .field("bg", &self.bg)
             .finish()
+    }
+}
+
+impl Annotate for Cell {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (1, 1)
     }
 }
 
@@ -358,6 +416,19 @@ impl Debug for Span {
     }
 }
 
+impl Annotate for Span {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (self.len(), 1)
+    }
+}
+
 #[derive(Default, PartialEq, Eq)]
 /// A layer of merged spans.
 pub struct Layer {
@@ -400,12 +471,8 @@ impl Layer {
                 debug_assert!(parts.len() == 3, "Span::split_by impl error");
 
                 solved.extend([
-                    parts[0]
-                        .take()
-                        .map(|p| Annot::new((base_x, base_y), p.len(), 1, p)),
-                    parts[2]
-                        .take()
-                        .map(|p| Annot::new((overlap_end, base_y), p.len(), 1, p)),
+                    parts[0].take().map(|p| p.annotate((base_x, base_y))),
+                    parts[2].take().map(|p| p.annotate((overlap_end, base_y))),
                 ]);
             }
             (true, false) => {
@@ -414,11 +481,7 @@ impl Layer {
 
                 debug_assert!(parts.len() == 2, "Span::split_by impl error");
 
-                solved.push(
-                    parts[0]
-                        .take()
-                        .map(|p| Annot::new((base_x, base_y), p.len(), 1, p)),
-                );
+                solved.push(parts[0].take().map(|p| p.annotate((base_x, base_y))));
             }
             (false, true) => {
                 let rel_end = overlap_end - base_x;
@@ -426,11 +489,7 @@ impl Layer {
 
                 debug_assert!(parts.len() == 2, "Span::split_by impl error");
 
-                solved.push(
-                    parts[1]
-                        .take()
-                        .map(|p| Annot::new((overlap_end, base_y), p.len(), 1, p)),
-                );
+                solved.push(parts[1].take().map(|p| p.annotate((overlap_end, base_y))));
             }
             (false, false) => {}
         }
@@ -523,19 +582,25 @@ impl Layer {
     }
 
     /// Create overlaps another layer to `self`.
-    pub fn overlap(&self, upper: Layer) -> Layer {
+    pub fn overlap(&self, self_root: (u16, u16), upper: Annot<Layer>) -> Annot<Layer> {
         let mut new_layer = Layer::default();
         let init_spans = self.spans.to_vec();
+        let (upper_x, upper_y) = upper.base_pos();
 
         for i_span in init_spans {
             new_layer.push_span(i_span);
         }
 
-        for overlap_span in upper.spans {
+        for overlap_span in upper.into_inner().spans {
+            let (rel_x, rel_y) = overlap_span.base_pos();
+            let overlap_span = overlap_span
+                .into_inner()
+                .annotate((upper_x + rel_x, upper_y + rel_y));
+
             new_layer.push_span_write(overlap_span);
         }
 
-        new_layer
+        new_layer.annotate((self_root.0.min(upper_x), self_root.1.min(upper_y)))
     }
 
     /// Adds offset to left top.
@@ -560,45 +625,58 @@ impl Debug for Layer {
     }
 }
 
+impl Annotate for Layer {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+}
+
 #[derive(Default, PartialEq, Eq)]
 /// A canvas of non merged layers.
 pub struct Canvas {
     front: usize,
     width: u16,
     height: u16,
-    layers: BTreeMap<usize, Layer>,
+    layers: BTreeMap<usize, Annot<Layer>>,
 }
 
 impl Canvas {
     /// Get inner mapping ref.
-    pub fn inner_vec(&self) -> Vec<(&usize, &Layer)> {
+    pub fn inner_vec(&self) -> Vec<(&usize, &Annot<Layer>)> {
         self.layers.iter().collect::<Vec<_>>()
     }
 
-    fn apply_layer(&mut self, z_index: usize, layer: Layer) {
-        self.width = self.width.max(layer.width);
-        self.height = self.height.max(layer.height);
+    fn apply_layer(&mut self, z_index: usize, layer: Annot<Layer>) {
+        let (layer_offset_x, layer_offset_y) = layer.base_pos();
+
+        self.width = self.width.max(layer_offset_x + layer.width());
+        self.height = self.height.max(layer_offset_y + layer.height());
 
         self.layers.insert(z_index, layer);
         self.front = self.front.max(z_index + 1);
     }
 
     /// Overlaps `layer` to top.
-    pub fn overlap_layer(&mut self, layer: Layer) {
+    pub fn overlap_layer(&mut self, layer: Annot<Layer>) {
         self.apply_layer(self.front, layer);
     }
 
     /// Insert `layer` to `z_index`.
-    pub fn insert(&mut self, z_index: usize, layer: Layer) {
+    pub fn insert(&mut self, z_index: usize, layer: Annot<Layer>) {
         self.apply_layer(z_index, layer);
     }
 
     /// Merge `layer` to `z_index`, or insert if not found `z_index` layer.
-    pub fn merge(&mut self, z_index: usize, layer: Layer) {
-        let new_layer = layer;
-
+    pub fn merge(&mut self, z_index: usize, new_layer: Annot<Layer>) {
         let merged_layer = match self.layers.get(&z_index) {
-            Some(layer) => layer.overlap(new_layer),
+            Some(layer) => layer.inner().overlap(layer.base_pos(), new_layer),
             None => new_layer,
         };
 
@@ -606,7 +684,7 @@ impl Canvas {
     }
 
     /// Insert `layer` to `z_index` if not found, or merge if found.
-    pub fn insert_or_merge(&mut self, z_index: usize, layer: Layer) {
+    pub fn insert_or_merge(&mut self, z_index: usize, layer: Annot<Layer>) {
         if self.layers.contains_key(&z_index) {
             self.merge(z_index, layer);
         } else {
@@ -619,18 +697,24 @@ impl Canvas {
         let mut view: Vec<Option<Cell>> = vec![None; self.height as usize * self.width as usize];
 
         for (_, layer) in self.layers.iter() {
-            for span in layer.inner().iter() {
+            let (layer_offset_x, layer_offset_y) = layer.base_pos();
+            let layer_spans = layer.inner().inner();
+
+            for span in layer_spans.iter() {
                 let (span_x, span_y) = span.base_pos();
-                let cells = span.inner().to_vec();
-                let Some(cells) = cells.get(0..span.width as usize) else {
-                    continue;
-                };
+                let (span_x, span_y) = (span_x + layer_offset_x, span_y + layer_offset_y);
+                let line_pad = span_y * self.width;
+                let replace_slice = &mut view
+                    [(span_x + line_pad) as usize..(span_x + span.width() + line_pad) as usize];
 
-                for (i, cell) in cells.iter().enumerate() {
-                    let index = (span_y * span.width + span_x) as usize + i;
+                let cells = span
+                    .inner()
+                    .to_vec()
+                    .into_iter()
+                    .map(Option::Some)
+                    .collect::<Vec<_>>();
 
-                    view[index] = Some(*cell);
-                }
+                replace_slice.copy_from_slice(&cells);
             }
         }
 
@@ -677,16 +761,6 @@ impl View {
         self.cells.is_empty()
     }
 
-    /// Returns area width.
-    pub fn width(&self) -> u16 {
-        self.width
-    }
-
-    /// Returns area height.
-    pub fn height(&self) -> u16 {
-        self.height
-    }
-
     /// Get inner iter.
     pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
         self.cells.iter()
@@ -694,7 +768,7 @@ impl View {
 
     /// Get slice from `row`.
     pub fn get_line(&self, rows: u16) -> &[Option<Cell>] {
-        if rows >= self.height() {
+        if rows >= self.height {
             return &[];
         }
 
@@ -733,6 +807,19 @@ impl Debug for View {
     }
 }
 
+impl Annotate for View {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+}
+
 /// A rect of used by actual rendering.
 pub struct Window {
     width: u16,
@@ -759,6 +846,19 @@ impl Window {
     /// Overlapping with `view`.
     pub fn overlap(&mut self, view: Annot<View>) {
         self.views.push_back(view);
+    }
+}
+
+impl Annotate for Window {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (self.width, self.height)
     }
 }
 

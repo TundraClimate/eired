@@ -1,33 +1,33 @@
-use eired_display::Annot;
+use eired_display::{Annotate, Rect};
 
 #[test]
 fn get_inner_apex() {
-    let annot = Annot::new((0, 0), 50, 50, "");
+    let annot = Rect(50, 50).annotate((0, 0));
 
     assert_eq!(annot.inner_apex_pos(), (49, 49));
 }
 
 #[test]
 fn get_outer_apex() {
-    let annot = Annot::new((0, 0), 50, 50, "");
+    let annot = Rect(50, 50).annotate((0, 0));
 
     assert_eq!(annot.outer_apex_pos(), (50, 50));
 }
 
 #[test]
 fn conflict_check() {
-    let annot1 = Annot::new((0, 0), 4, 1, "");
-    let annot2 = Annot::new((3, 0), 4, 1, "");
-    let annot3 = Annot::new((0, 0), 1, 4, "");
-    let annot4 = Annot::new((0, 3), 1, 4, "");
-    let annot5 = Annot::new((4, 0), 4, 1, "");
-    let annot6 = Annot::new((0, 4), 1, 4, "");
-    let annot7 = Annot::new((2, 0), 2, 1, "");
-    let annot8 = Annot::new((0, 0), 6, 1, "");
-    let annot9 = Annot::new((0, 0), 6, 1, "");
-    let anno10 = Annot::new((0, 1), 6, 1, "");
-    let anno11 = Annot::new((0, 0), 1, 6, "");
-    let anno12 = Annot::new((1, 0), 1, 6, "");
+    let annot1 = Rect(4, 1).annotate((0, 0));
+    let annot2 = Rect(4, 1).annotate((3, 0));
+    let annot3 = Rect(1, 4).annotate((0, 0));
+    let annot4 = Rect(1, 4).annotate((0, 3));
+    let annot5 = Rect(4, 1).annotate((4, 0));
+    let annot6 = Rect(1, 4).annotate((0, 4));
+    let annot7 = Rect(2, 1).annotate((2, 0));
+    let annot8 = Rect(6, 1).annotate((0, 0));
+    let annot9 = Rect(6, 1).annotate((0, 0));
+    let anno10 = Rect(6, 1).annotate((0, 1));
+    let anno11 = Rect(1, 6).annotate((0, 0));
+    let anno12 = Rect(1, 6).annotate((1, 0));
 
     assert!(annot1.is_conflict(&annot2));
     assert!(annot3.is_conflict(&annot4));
@@ -48,7 +48,7 @@ fn conflict_check() {
 
 #[test]
 fn contains_pos() {
-    let annot = Annot::new((0, 0), 50, 50, "");
+    let annot = Rect::new(50, 50).annotate((0, 0));
 
     assert!(annot.contains_pos(49, 49));
     assert!(!annot.contains_pos(50, 50));
