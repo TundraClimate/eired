@@ -732,3 +732,36 @@ impl Debug for View {
             .finish()
     }
 }
+
+/// A rect of used by actual rendering.
+pub struct Window {
+    width: u16,
+    height: u16,
+    views: VecDeque<Annot<View>>,
+}
+
+impl Window {
+    /// Create new window.
+    pub fn new(width: u16, height: u16) -> Self {
+        Self {
+            width,
+            height,
+            views: VecDeque::new(),
+        }
+    }
+
+    /// Resize window.
+    pub fn resize(&mut self, width: u16, height: u16) {
+        self.width = width;
+        self.height = height;
+    }
+
+    /// Overlapping with `view`.
+    pub fn overlap(&mut self, view: Annot<View>) {
+        self.views.push_back(view);
+    }
+}
+
+pub fn convert_to_buffer(_window: Annot<Window>) {
+    todo!()
+}
