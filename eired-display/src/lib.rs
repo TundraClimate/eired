@@ -909,9 +909,15 @@ pub fn create_virtual_terminal(mut window: Window) -> Vec<Option<Cell>> {
     holder
 }
 
-pub struct WindowSpan<'a> {
-    start: usize,
-    span: &'a [Option<Annot<Cell>>],
+pub struct DrawableSpan {
+    moveto: (u16, u16),
+    span: Vec<Option<Annot<Cell>>>,
 }
 
-pub fn convert_to_spans(vterm: Vec<Option<Cell>>) {}
+pub fn create_diff(old: &[Option<Cell>], new: &[Option<Cell>]) -> Vec<Option<Cell>> {
+    todo!()
+}
+
+pub fn convert_to_spans(vterm: Vec<Option<Cell>>) -> Vec<DrawableSpan> {
+    todo!()
+}
