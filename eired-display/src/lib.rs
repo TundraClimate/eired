@@ -875,6 +875,43 @@ impl Annotate for Window {
     }
 }
 
-pub fn convert_to_buffer(_window: Annot<Window>) {
-    todo!()
+pub fn create_virtual_terminal(mut window: Window) -> Vec<Option<Cell>> {
+    let window_width = window.width;
+    let window_height = window.height;
+
+    let mut holder = vec![None; (window_width * window_height) as usize];
+
+    while let Some(view) = window.views.pop_front() {
+        let (view_offset_x, view_offset_y) = view.base_pos();
+
+        let drawable_width = window_width.min(view.width().saturating_sub(view_offset_x)) as usize;
+        let drawable_height = window_height - view_offset_y;
+
+        if drawable_width == 0 || drawable_height == 0 {
+            continue;
+        }
+
+        let view = view.into_inner();
+
+        for rel_y in 0..drawable_height {
+            let line = &view.get_line(rel_y);
+            let view_offset_x = view_offset_x as usize;
+
+            let src = &line[view_offset_x..(view_offset_x + drawable_width)];
+            let dst_begin = (window_width * (view_offset_y + rel_y)) as usize + view_offset_x;
+
+            let dst = &mut holder[dst_begin..dst_begin + drawable_width];
+
+            dst.copy_from_slice(src);
+        }
+    }
+
+    holder
 }
+
+pub struct WindowSpan<'a> {
+    start: usize,
+    span: &'a [Option<Annot<Cell>>],
+}
+
+pub fn convert_to_spans(vterm: Vec<Option<Cell>>) {}

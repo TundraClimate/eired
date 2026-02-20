@@ -15,3 +15,6 @@ mod canvas;
 
 #[cfg(test)]
 mod view;
+
+#[cfg(test)]
+mod window;
