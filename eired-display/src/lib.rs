@@ -914,10 +914,6 @@ pub struct DrawableSpan {
     span: Vec<Option<Annot<Cell>>>,
 }
 
-pub fn create_diff(old: &[Option<Cell>], new: &[Option<Cell>]) -> Vec<Option<Cell>> {
-    todo!()
-}
-
 pub fn convert_to_spans(vterm: Vec<Option<Cell>>) -> Vec<DrawableSpan> {
     todo!()
 }
