@@ -841,6 +841,15 @@ impl Window {
         }
     }
 
+    /// Create new window with filled views.
+    pub fn from_views(width: u16, height: u16, views: Vec<Annot<View>>) -> Self {
+        Self {
+            width,
+            height,
+            views: VecDeque::from_iter(views),
+        }
+    }
+
     /// Resize window.
     pub fn resize(&mut self, width: u16, height: u16) {
         self.width = width;
