@@ -127,16 +127,20 @@ impl<T: PartialEq> PartialEq for Annot<T> {
 }
 
 pub trait Annotate {
+    /// Create new annot.
     fn annotate(self, root: (u16, u16)) -> Annot<Self>
     where
         Self: Sized;
 
+    /// Returns (`width`, `height`).
     fn get_size(&self) -> (u16, u16);
 
+    /// Returns width.
     fn width(&self) -> u16 {
         self.get_size().0
     }
 
+    /// Returns height.
     fn height(&self) -> u16 {
         self.get_size().1
     }
