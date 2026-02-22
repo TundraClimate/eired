@@ -134,7 +134,10 @@ pub trait Annotate {
     /// Create new annot.
     fn annotate(self, root: (u16, u16)) -> Annot<Self>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
 
     /// Returns (`width`, `height`).
     fn get_size(&self) -> (u16, u16);
@@ -161,13 +164,6 @@ impl Rect {
 }
 
 impl Annotate for Rect {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (self.0, self.1)
     }
@@ -236,13 +232,6 @@ impl Debug for Cell {
 }
 
 impl Annotate for Cell {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (1, 1)
     }
@@ -425,13 +414,6 @@ impl Debug for Span {
 }
 
 impl Annotate for Span {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (self.len(), 1)
     }
@@ -634,13 +616,6 @@ impl Debug for Layer {
 }
 
 impl Annotate for Layer {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (self.width, self.height)
     }
@@ -816,13 +791,6 @@ impl Debug for View {
 }
 
 impl Annotate for View {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (self.width, self.height)
     }
@@ -867,13 +835,6 @@ impl Window {
 }
 
 impl Annotate for Window {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (self.width, self.height)
     }
@@ -966,13 +927,6 @@ impl<'a> IntoIterator for &'a VTerm {
 }
 
 impl Annotate for VTerm {
-    fn annotate(self, root: (u16, u16)) -> Annot<Self>
-    where
-        Self: Sized,
-    {
-        Annot::new(root, self)
-    }
-
     fn get_size(&self) -> (u16, u16) {
         (self.width, self.height)
     }
