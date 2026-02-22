@@ -41,11 +41,11 @@ fn create_vterm() {
         ],
     );
 
-    let res = eired_display::create_virtual_terminal(window);
+    let res = eired_display::create_virtual_terminal(window.annotate((0, 0))).into_inner();
 
     assert!(res.len() == 9);
     assert_eq!(
-        res,
+        res.to_vec(),
         vec![
             Some(Cell::new('.')),
             Some(Cell::new('.')),

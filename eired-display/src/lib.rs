@@ -1,11 +1,15 @@
 use std::collections::BTreeMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::io;
+use std::io::Stdout;
 use std::mem;
 use std::slice::Iter;
 use std::vec::IntoIter;
 
-use crossterm::style::Color;
+use crossterm::cursor::MoveTo;
+use crossterm::queue;
+use crossterm::style::{Color, Print, Stylize};
 
 /// An annotation of coords for struct.
 pub struct Annot<T> {
@@ -875,7 +879,12 @@ impl Annotate for Window {
     }
 }
 
-pub fn create_virtual_terminal(mut window: Window) -> Vec<Option<Cell>> {
+/// Convert to annotated [VTerm] from annotated [Window].
+pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
+    let root = window.base_pos();
+
+    let mut window = window.into_inner();
+
     let window_width = window.width;
     let window_height = window.height;
 
@@ -906,14 +915,113 @@ pub fn create_virtual_terminal(mut window: Window) -> Vec<Option<Cell>> {
         }
     }
 
-    holder
+    VTerm::new(window_width, window_height, holder).annotate(root)
 }
 
+/// A wrapper of [Vec<Option<Cell>>].
+pub struct VTerm {
+    width: u16,
+    height: u16,
+    cells: Vec<Option<Cell>>,
+}
+
+impl VTerm {
+    /// Create new wrapper.
+    pub fn new(width: u16, height: u16, cells: Vec<Option<Cell>>) -> Self {
+        Self {
+            width,
+            height,
+            cells,
+        }
+    }
+
+    /// Returns inner length.
+    pub fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    /// Returns `true` was inner is empty.
+    pub fn is_empty(&self) -> bool {
+        self.cells.is_empty()
+    }
+
+    /// Returns an inner iter.
+    pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
+        self.cells.iter()
+    }
+
+    /// Unwraps self.
+    pub fn to_vec(&self) -> Vec<Option<Cell>> {
+        self.cells.to_vec()
+    }
+}
+
+impl<'a> IntoIterator for &'a VTerm {
+    type Item = &'a Option<Cell>;
+    type IntoIter = Iter<'a, Option<Cell>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl Annotate for VTerm {
+    fn annotate(self, root: (u16, u16)) -> Annot<Self>
+    where
+        Self: Sized,
+    {
+        Annot::new(root, self)
+    }
+
+    fn get_size(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+}
+
+/// A drawing command.
 pub struct DrawableSpan {
     moveto: (u16, u16),
-    span: Vec<Option<Annot<Cell>>>,
+    span: Vec<Cell>,
 }
 
-pub fn convert_to_spans(vterm: Vec<Option<Cell>>) -> Vec<DrawableSpan> {
+impl DrawableSpan {
+    /// Create new cmd.
+    pub fn new<T: IntoIterator<Item = Cell>>(moveto: (u16, u16), cells: T) -> Self {
+        Self {
+            moveto,
+            span: cells.into_iter().collect::<Vec<_>>(),
+        }
+    }
+
+    /// Apply styles by crossterm.
+    pub fn styled_content(&self) -> String {
+        self.span.iter().fold("".to_string(), |acc, cell| {
+            let cell = cell.ch.with(cell.fg).on(cell.bg);
+
+            format!("{}{}", acc, cell)
+        })
+    }
+
+    /// Draws self for `stdout`.
+    pub fn draw(&self, stdout: &mut Stdout) -> io::Result<()> {
+        draw(stdout, self)
+    }
+}
+
+impl<T: Iterator<Item = Cell>> From<Annot<T>> for DrawableSpan {
+    fn from(value: Annot<T>) -> Self {
+        Self::new(value.base_pos(), value.into_inner())
+    }
+}
+
+/// Draws `cmd` for `stdout`.
+pub fn draw(stdout: &mut Stdout, cmd: &DrawableSpan) -> io::Result<()> {
+    let styled = cmd.styled_content();
+
+    queue!(stdout, MoveTo(cmd.moveto.0, cmd.moveto.1), Print(styled))
+}
+
+/// Convert to draw commands from [VTerm].
+pub fn convert_to_spans(vterm: Annot<VTerm>) -> Vec<DrawableSpan> {
     todo!()
 }
