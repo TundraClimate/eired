@@ -978,6 +978,7 @@ impl Annotate for VTerm {
     }
 }
 
+#[derive(PartialEq, Eq)]
 /// A drawing command.
 pub struct DrawableSpan {
     moveto: (u16, u16),
@@ -1014,6 +1015,18 @@ impl<T: Iterator<Item = Cell>> From<Annot<T>> for DrawableSpan {
     }
 }
 
+impl Debug for DrawableSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Draw")
+            .field(
+                "MoveTo",
+                &format!("(x: {}, y: {})", self.moveto.0, self.moveto.1),
+            )
+            .field("cells", &self.span)
+            .finish()
+    }
+}
+
 /// Draws `cmd` for `stdout`.
 pub fn draw(stdout: &mut Stdout, cmd: &DrawableSpan) -> io::Result<()> {
     let styled = cmd.styled_content();
@@ -1023,5 +1036,46 @@ pub fn draw(stdout: &mut Stdout, cmd: &DrawableSpan) -> io::Result<()> {
 
 /// Convert to draw commands from [VTerm].
 pub fn convert_to_spans(vterm: Annot<VTerm>) -> Vec<DrawableSpan> {
-    todo!()
+    let (rel_base_x, rel_base_y) = vterm.base_pos();
+    let term_width = vterm.width();
+    let vterm = vterm.into_inner();
+
+    let mut res = vec![];
+    let mut buffer = vec![];
+    let mut start_x = rel_base_x;
+    let mut start_y = rel_base_y;
+
+    for (i, cell) in vterm.iter().enumerate() {
+        if (i as u16).is_multiple_of(term_width) && !buffer.is_empty() {
+            let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
+
+            res.push(cmd);
+        }
+
+        match cell {
+            Some(cell) => {
+                if buffer.is_empty() {
+                    start_x = rel_base_x + (i as u16 % term_width);
+                    start_y = rel_base_y + (i as u16 / term_width);
+                }
+
+                buffer.push(*cell);
+            }
+            None => {
+                if !buffer.is_empty() {
+                    let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
+
+                    res.push(cmd);
+                }
+            }
+        }
+    }
+
+    if !buffer.is_empty() {
+        let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
+
+        res.push(cmd);
+    }
+
+    res
 }

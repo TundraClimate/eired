@@ -18,3 +18,6 @@ mod view;
 
 #[cfg(test)]
 mod window;
+
+#[cfg(test)]
+mod draw_cmd;
