@@ -308,9 +308,7 @@ impl Span {
     pub fn append(&mut self, source: &mut Span) {
         self.len += source.len();
 
-        for cell in source.cells.iter_mut() {
-            self.cells.push_back(mem::take(cell));
-        }
+        self.cells.append(&mut source.cells)
     }
 
     /// Pushes all from `s`.
