@@ -248,7 +248,53 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
     VTerm::new(window_width, window_height, holder).annotate(root)
 }
 
+#[derive(PartialEq, Eq)]
 /// A wrapper of [`Vec<Option<Cell>>`].
+///
+/// # Examples
+///
+/// ```
+/// # use eired_display::VTerm;
+/// # use eired_display::View;
+/// # use eired_display::Cell;
+/// # use eired_display::Annotate;
+/// # use eired_display::Window;
+/// # let view = View::new(10, 1, vec![
+/// #     Some(Cell::new('I')),
+/// #     None,
+/// #     None,
+/// #     None,
+/// #     None,
+/// #     None,
+/// #     None,
+/// #     None,
+/// #     None,
+/// #     Some(Cell::new('O')),
+/// # ]);
+/// # let window = Window::from_views(10, 5, vec![
+/// #     view.clone().annotate((0, 0)),
+/// #     view.clone().annotate((0, 1)),
+/// #     view.clone().annotate((0, 2)),
+/// #     view.clone().annotate((0, 3)),
+/// #     view.clone().annotate((0, 4)),
+/// # ]);
+/// let vterm = eired_display::create_virtual_terminal(
+///     // Window
+///     # window.annotate((0, 0))
+/// );
+///
+/// assert_eq!(
+///     vterm,
+///     // term
+///     # VTerm::new(10, 5, vec![
+///     # Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+///     # Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+///     # Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+///     # Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+///     # Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+///     # ]).annotate((0, 0))
+/// )
+/// ```
 pub struct VTerm {
     width: u16,
     height: u16,
@@ -257,6 +303,21 @@ pub struct VTerm {
 
 impl VTerm {
     /// Create new wrapper.
+    ///
+    /// ```
+    /// # use eired_display::VTerm;
+    /// use eired_display::Cell;
+    ///
+    /// let vterm = VTerm::new(10, 5, vec![
+    ///     Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+    ///     Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+    ///     Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+    ///     Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+    ///     Some(Cell::new('I')), None, None, None, None, None, None, None, None, Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// assert_eq!(vterm.len(), 50);
+    /// ```
     pub fn new(width: u16, height: u16, cells: Vec<Option<Cell>>) -> Self {
         Self {
             width,
@@ -266,21 +327,72 @@ impl VTerm {
     }
 
     /// Returns inner length.
+    ///
+    /// ```
+    /// # use eired_display::VTerm;
+    /// use eired_display::Cell;
+    ///
+    /// let vterm = VTerm::new(3, 1, vec![
+    ///     Some(Cell::new('I')), None, Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// assert_eq!(vterm.len(), 3);
+    /// ```
     pub fn len(&self) -> usize {
         self.cells.len()
     }
 
     /// Returns `true` was inner is empty.
+    ///
+    /// ```
+    /// # use eired_display::VTerm;
+    /// let vterm = VTerm::new(0, 1, vec![
+    /// ]);
+    ///
+    /// assert!(vterm.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
     }
 
     /// Returns an inner iter.
+    ///
+    /// ```
+    /// # use eired_display::VTerm;
+    /// use eired_display::Cell;
+    ///
+    /// let vterm = VTerm::new(3, 1, vec![
+    ///     Some(Cell::new('I')), None, Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// let mut iter = vterm.iter();
+    ///
+    /// assert_eq!(iter.next(), Some(&Some(Cell::new('I'))));
+    /// assert_eq!(iter.next(), Some(&None));
+    /// assert_eq!(iter.next(), Some(&Some(Cell::new('O'))));
+    /// ```
     pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
         self.cells.iter()
     }
 
     /// Unwraps self.
+    ///
+    /// ```
+    /// # use eired_display::VTerm;
+    /// use eired_display::Cell;
+    ///
+    /// let vterm = VTerm::new(3, 1, vec![
+    ///     Some(Cell::new('I')), None, Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// let v = vterm.to_vec();
+    ///
+    /// assert_eq!(v, vec![
+    ///     Some(Cell::new('I')),
+    ///     None,
+    ///     Some(Cell::new('O')),
+    /// ]);
+    /// ```
     pub fn to_vec(&self) -> Vec<Option<Cell>> {
         self.cells.to_vec()
     }
@@ -295,6 +407,12 @@ impl<'a> IntoIterator for &'a VTerm {
     }
 }
 
+impl Debug for VTerm {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(&self.cells).finish()
+    }
+}
+
 impl Annotate for VTerm {
     fn get_size(&self) -> (u16, u16) {
         (self.width, self.height)
@@ -302,6 +420,35 @@ impl Annotate for VTerm {
 }
 
 /// Convert to draw commands from [VTerm].
+///
+/// ```
+/// # use eired_display::VTerm;
+/// use eired_display::Cell;
+/// use eired_display::Annotate;
+///
+/// let vterm = VTerm::new(5, 4, vec![
+///     Some(Cell::new('S')), Some(Cell::new('P')), Some(Cell::new('A')), Some(Cell::new('N')), None,
+///     None, Some(Cell::new('S')), Some(Cell::new('P')), Some(Cell::new('A')), Some(Cell::new('N')),
+///     None, None, Some(Cell::new('S')), Some(Cell::new('P')), Some(Cell::new('A')),
+///     Some(Cell::new('N')), None, None, Some(Cell::new('S')), Some(Cell::new('P')),
+/// ]);
+///
+/// let spans = eired_display::convert_to_spans(vterm.annotate((0, 0)));
+///
+/// // "SPAN "
+/// // " SPAN"
+/// // "  SPA"
+/// // "N  SP"
+/// //
+/// // INTO
+/// //
+/// // MoveTo(0, 0) "SPAN"
+/// // MoveTo(1, 1) "SPAN"
+/// // MoveTo(2, 2) "SPA"
+/// // MoveTo(0, 3) "N"
+/// // MoveTo(3, 3) "SP"
+/// assert_eq!(spans.len(), 5);
+/// ```
 pub fn convert_to_spans(vterm: Annot<VTerm>) -> Vec<DrawableSpan> {
     let (rel_base_x, rel_base_y) = vterm.base_pos();
     let term_width = vterm.width();
