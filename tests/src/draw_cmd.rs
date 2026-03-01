@@ -61,7 +61,7 @@ fn convert_to_cmds() {
 }
 
 #[test]
-fn convert_to_cmds_with_offset() {
+fn convert_to_cmds_with_margin() {
     let window = Window::from_views(
         3,
         3,

@@ -327,7 +327,7 @@ impl Layer {
         new_layer.annotate((self_root.0.min(upper_x), self_root.1.min(upper_y)))
     }
 
-    /// Adds offset to left top.
+    /// Adds margin to left top.
     ///
     /// # Examples
     ///
@@ -342,20 +342,20 @@ impl Layer {
     /// layer.push_span_write(Span::from("XXX").annotate((0, 1)));
     /// layer.push_span_write(Span::from("XXX").annotate((0, 2)));
     ///
-    /// layer.add_offset((3, 3));
+    /// layer.add_margin((3, 3));
     ///
     /// assert!(layer.take_with(|s| s == &Span::from("XXX").annotate((3, 3))).is_some());
     /// assert!(layer.take_with(|s| s == &Span::from("XXX").annotate((3, 4))).is_some());
     /// assert!(layer.take_with(|s| s == &Span::from("XXX").annotate((3, 5))).is_some());
     /// ```
-    pub fn add_offset(&mut self, offset: (u16, u16)) {
-        self.width += offset.0;
-        self.height += offset.1;
+    pub fn add_margin(&mut self, margin: (u16, u16)) {
+        self.width += margin.0;
+        self.height += margin.1;
 
         for span in self.spans.iter_mut() {
             span.rebase(|x, y| {
-                *x += offset.0;
-                *y += offset.1;
+                *x += margin.0;
+                *y += margin.1;
             })
         }
     }

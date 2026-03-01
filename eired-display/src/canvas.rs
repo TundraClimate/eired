@@ -91,10 +91,10 @@ impl Canvas {
     }
 
     fn apply_layer(&mut self, z_index: usize, layer: Annot<Layer>) {
-        let (layer_offset_x, layer_offset_y) = layer.base_pos();
+        let (layer_margin_x, layer_margin_y) = layer.base_pos();
 
-        self.width = self.width.max(layer_offset_x + layer.width());
-        self.height = self.height.max(layer_offset_y + layer.height());
+        self.width = self.width.max(layer_margin_x + layer.width());
+        self.height = self.height.max(layer_margin_y + layer.height());
 
         self.layers.insert(z_index, layer);
         self.front = self.front.max(z_index + 1);
@@ -305,12 +305,12 @@ impl Canvas {
         let mut view: Vec<Option<Cell>> = vec![None; self.height as usize * self.width as usize];
 
         for (_, layer) in self.layers.iter() {
-            let (layer_offset_x, layer_offset_y) = layer.base_pos();
+            let (layer_margin_x, layer_margin_y) = layer.base_pos();
             let layer_spans = layer.inner().inner();
 
             for span in layer_spans.iter() {
                 let (span_x, span_y) = span.base_pos();
-                let (span_x, span_y) = (span_x + layer_offset_x, span_y + layer_offset_y);
+                let (span_x, span_y) = (span_x + layer_margin_x, span_y + layer_margin_y);
                 let line_pad = span_y * self.width;
                 let replace_slice = &mut view
                     [(span_x + line_pad) as usize..(span_x + span.width() + line_pad) as usize];

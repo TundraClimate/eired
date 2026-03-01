@@ -127,7 +127,7 @@ fn overlap_layer() {
 }
 
 #[test]
-fn annot_offset() {
+fn annot_margin() {
     let mut layer1 = Layer::default();
 
     layer1.push_span_write(Span::from("Hello, World!").annotate((0, 0)));
@@ -150,11 +150,11 @@ fn annot_offset() {
 }
 
 #[test]
-fn offset_addr() {
+fn margin_addr() {
     let mut layer = Layer::default();
 
     layer.push_span_write(Span::from("Hello, World!").annotate((0, 0)));
-    layer.add_offset((5, 1));
+    layer.add_margin((5, 1));
 
     assert!(layer.inner().len() == 1);
     assert_eq!(
