@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::io::{self, Stdout};
+use std::io::{self, Write};
 
 use crossterm::cursor::MoveTo;
 use crossterm::queue;
@@ -9,6 +9,30 @@ use crate::{Annot, Cell};
 
 #[derive(PartialEq, Eq)]
 /// A drawing command.
+///
+/// Includes a start position and span.
+/// Calls the [`draw`](DrawableSpan::draw) function to draws span to the terminal with rendering crate. (e.g. [crossterm])  
+///
+/// # Notes
+///
+/// In the current version, only support the [`crossterm`] to draw.  
+/// This may change in the future.
+///
+/// # Examples
+///
+/// ```no_run
+/// # use eired_display::DrawableSpan;
+/// use eired_display::Span;
+/// use std::io;
+/// use std::io::Write;
+///
+/// let cmd = DrawableSpan::new((0, 0), Span::from("Hello, World!").to_vec());
+/// let mut stdout = io::stdout();
+///
+/// cmd.draw(&mut stdout).ok();
+///
+/// stdout.flush().ok();
+/// ```
 pub struct DrawableSpan {
     moveto: (u16, u16),
     span: Vec<Cell>,
@@ -16,6 +40,15 @@ pub struct DrawableSpan {
 
 impl DrawableSpan {
     /// Create new cmd.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use eired_display::DrawableSpan;
+    /// use eired_display::Span;
+    ///
+    /// DrawableSpan::new((0, 0), Span::from("Hello, World!").to_vec());
+    /// ```
     pub fn new<T: IntoIterator<Item = Cell>>(moveto: (u16, u16), cells: T) -> Self {
         Self {
             moveto,
@@ -24,6 +57,17 @@ impl DrawableSpan {
     }
 
     /// Apply styles by crossterm.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use eired_display::DrawableSpan;
+    /// use eired_display::Span;
+    ///
+    /// let cmd = DrawableSpan::new((0, 0), Span::from("Hello, World!").to_vec());
+    ///
+    /// println!("{}", cmd.styled_content());
+    /// ```
     pub fn styled_content(&self) -> String {
         self.span.iter().fold("".to_string(), |acc, cell| {
             let cell = cell.ch.with(cell.fg).on(cell.bg);
@@ -32,9 +76,25 @@ impl DrawableSpan {
         })
     }
 
-    /// Draws self for `stdout`.
-    pub fn draw(&self, stdout: &mut Stdout) -> io::Result<()> {
-        draw(stdout, self)
+    /// Draws self for `write`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use eired_display::DrawableSpan;
+    /// use eired_display::Span;
+    /// use std::io;
+    /// use std::io::Write;
+    ///
+    /// let cmd = DrawableSpan::new((0, 0), Span::from("Hello, World!").to_vec());
+    /// let mut stdout = io::stdout();
+    ///
+    /// cmd.draw(&mut stdout).ok();
+    ///
+    /// stdout.flush().ok();
+    /// ```
+    pub fn draw<W: Write>(&self, write: &mut W) -> io::Result<()> {
+        draw(write, self)
     }
 }
 
@@ -56,8 +116,8 @@ impl Debug for DrawableSpan {
     }
 }
 
-fn draw(stdout: &mut Stdout, cmd: &DrawableSpan) -> io::Result<()> {
+fn draw<W: Write>(write: &mut W, cmd: &DrawableSpan) -> io::Result<()> {
     let styled = cmd.styled_content();
 
-    queue!(stdout, MoveTo(cmd.moveto.0, cmd.moveto.1), Print(styled))
+    queue!(write, MoveTo(cmd.moveto.0, cmd.moveto.1), Print(styled))
 }
