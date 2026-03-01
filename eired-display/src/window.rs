@@ -1,10 +1,40 @@
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::mem;
 use std::slice::Iter;
 
 use crate::{Annot, Annotate, Cell, DrawableSpan, View};
 
+#[derive(PartialEq, Eq)]
 /// A rect of used by actual rendering.
+///
+/// This holds the layer overlaps on temp. NOT truncates and NOT overwrites. Window size can only
+/// changes by [`resize`](Window::resize).
+///
+/// # Examples
+///
+/// ```
+/// # use eired_display::Window;
+/// use eired_display::Annotate;
+/// use eired_display::Cell;
+/// use eired_display::View;
+///
+/// let view = View::new(3, 1, vec![
+///     Some(Cell::new('O')),
+///     Some(Cell::new('O')),
+///     Some(Cell::new('O')),
+/// ]);
+///
+/// let mut window = Window::new(5, 2);
+///
+/// window.overlap(view.clone().annotate((0, 0)));
+/// window.overlap(view.clone().annotate((3, 1)));
+///
+/// assert_eq!(window, Window::from_views(5, 2, vec![
+///     view.clone().annotate((0, 0)),
+///     view.clone().annotate((3, 1)),
+/// ]));
+/// ```
 pub struct Window {
     width: u16,
     height: u16,
@@ -13,6 +43,31 @@ pub struct Window {
 
 impl Window {
     /// Create new window.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eired_display::Window;
+    /// use eired_display::Annotate;
+    /// use eired_display::Cell;
+    /// use eired_display::View;
+    ///
+    /// let view = View::new(3, 1, vec![
+    ///     Some(Cell::new('O')),
+    ///     Some(Cell::new('O')),
+    ///     Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// let mut window = Window::new(5, 2);
+    ///
+    /// window.overlap(view.clone().annotate((0, 0)));
+    /// window.overlap(view.clone().annotate((3, 1)));
+    ///
+    /// assert_eq!(window, Window::from_views(5, 2, vec![
+    ///     view.clone().annotate((0, 0)),
+    ///     view.clone().annotate((3, 1)),
+    /// ]));
+    /// ```
     pub fn new(width: u16, height: u16) -> Self {
         Self {
             width,
@@ -22,6 +77,20 @@ impl Window {
     }
 
     /// Create new window with filled views.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eired_display::Window;
+    /// use eired_display::Annotate;
+    /// use eired_display::Cell;
+    /// use eired_display::View;
+    ///
+    /// let window = Window::from_views(2, 2, vec![
+    ///     View::new(3, 1, vec![None, None, None]).annotate((0, 0)),
+    ///     View::new(2, 1, vec![Some(Cell::new('I')), None]).annotate((0, 1)),
+    /// ]);
+    /// ```
     pub fn from_views(width: u16, height: u16, views: Vec<Annot<View>>) -> Self {
         Self {
             width,
@@ -31,14 +100,64 @@ impl Window {
     }
 
     /// Resize window.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eired_display::Window;
+    /// use eired_display::Annotate;
+    /// use eired_display::Cell;
+    /// use eired_display::View;
+    ///
+    /// let mut window = Window::from_views(2, 2, vec![
+    ///     View::new(2, 1, vec![None, None]).annotate((0, 0)),
+    ///     View::new(2, 1, vec![None, None]).annotate((0, 0)),
+    /// ]);
+    ///
+    /// window.resize(3, 3);
+    ///
+    /// assert_eq!(window.width(), 3);
+    /// assert_eq!(window.height(), 3);
+    /// ```
     pub fn resize(&mut self, width: u16, height: u16) {
         self.width = width;
         self.height = height;
     }
 
     /// Overlapping with `view`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eired_display::Window;
+    /// use eired_display::Annotate;
+    /// use eired_display::Cell;
+    /// use eired_display::View;
+    ///
+    /// let view = View::new(3, 1, vec![
+    ///     Some(Cell::new('O')),
+    ///     Some(Cell::new('O')),
+    ///     Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// let mut window = Window::new(5, 2);
+    ///
+    /// window.overlap(view.clone().annotate((0, 0)));
+    /// window.overlap(view.clone().annotate((3, 1)));
+    ///
+    /// assert_eq!(window, Window::from_views(5, 2, vec![
+    ///     view.clone().annotate((0, 0)),
+    ///     view.clone().annotate((3, 1)),
+    /// ]));
+    /// ```
     pub fn overlap(&mut self, view: Annot<View>) {
         self.views.push_back(view);
+    }
+}
+
+impl Debug for Window {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(&self.views).finish()
     }
 }
 
@@ -49,6 +168,44 @@ impl Annotate for Window {
 }
 
 /// Convert to annotated [VTerm] from annotated [Window].
+///
+/// [`VTerm`] inherit the size of [`Window`] and truncates the invisible sides.
+/// Write the layers in order, the last view displays on top.
+///
+/// # Examples
+///
+/// ```
+/// use eired_display::Window;
+/// use eired_display::Annotate;
+/// use eired_display::Cell;
+/// use eired_display::View;
+/// use eired_display::VTerm;
+///
+/// let view = View::new(10, 1, vec![
+///     Some(Cell::new('I')),
+///     None,
+///     None,
+///     None,
+///     None,
+///     None,
+///     None,
+///     None,
+///     None,
+///     Some(Cell::new('O')),
+/// ]);
+///
+/// let window = Window::from_views(10, 5, vec![
+///     view.clone().annotate((0, 0)),
+///     view.clone().annotate((0, 1)),
+///     view.clone().annotate((0, 2)),
+///     view.clone().annotate((0, 3)),
+///     view.clone().annotate((0, 4)),
+/// ]);
+///
+/// let vterm = eired_display::create_virtual_terminal(window.annotate((0, 0)));
+///
+/// assert_eq!(vterm.inner().len(), 50);
+/// ```
 pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
     let root = window.base_pos();
 
@@ -60,10 +217,14 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
     let mut holder = vec![None; (window_width * window_height) as usize];
 
     while let Some(view) = window.views.pop_front() {
-        let (view_offset_x, view_offset_y) = view.base_pos();
+        let (view_margin_x, view_margin_y) = view.base_pos();
 
-        let drawable_width = window_width.min(view.width().saturating_sub(view_offset_x)) as usize;
-        let drawable_height = window_height - view_offset_y;
+        let drawable_width = window_width
+            .min(view.width() + view_margin_x)
+            .saturating_sub(view_margin_x) as usize;
+        let drawable_height = window_height
+            .min(view.height() + view_margin_y)
+            .saturating_sub(view_margin_y);
 
         if drawable_width == 0 || drawable_height == 0 {
             continue;
@@ -73,10 +234,10 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
 
         for rel_y in 0..drawable_height {
             let line = &view.get_line(rel_y);
-            let view_offset_x = view_offset_x as usize;
+            let view_margin_x = view_margin_x as usize;
 
-            let src = &line[view_offset_x..(view_offset_x + drawable_width)];
-            let dst_begin = (window_width * (view_offset_y + rel_y)) as usize + view_offset_x;
+            let src = &line[..drawable_width];
+            let dst_begin = (window_width * (view_margin_y + rel_y)) as usize + view_margin_x;
 
             let dst = &mut holder[dst_begin..dst_begin + drawable_width];
 

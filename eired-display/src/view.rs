@@ -176,6 +176,16 @@ impl<'a> IntoIterator for &'a View {
     }
 }
 
+impl Clone for View {
+    fn clone(&self) -> Self {
+        Self {
+            height: self.height,
+            width: self.width,
+            cells: self.cells.clone(),
+        }
+    }
+}
+
 impl Debug for View {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("View")
