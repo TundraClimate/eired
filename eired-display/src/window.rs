@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::mem;
 use std::slice::Iter;
+use std::vec::IntoIter;
 
 use crate::{Annot, Annotate, Cell, DrawableSpan, View};
 
@@ -398,6 +399,15 @@ impl VTerm {
     }
 }
 
+impl IntoIterator for VTerm {
+    type Item = Option<Cell>;
+    type IntoIter = IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cells.into_iter()
+    }
+}
+
 impl<'a> IntoIterator for &'a VTerm {
     type Item = &'a Option<Cell>;
     type IntoIter = Iter<'a, Option<Cell>>;
@@ -422,7 +432,7 @@ impl Annotate for VTerm {
 /// Convert to draw commands from [VTerm].
 ///
 /// ```
-/// # use eired_display::VTerm;
+/// use eired_display::VTerm;
 /// use eired_display::Cell;
 /// use eired_display::Annotate;
 ///
@@ -449,17 +459,17 @@ impl Annotate for VTerm {
 /// // MoveTo(3, 3) "SP"
 /// assert_eq!(spans.len(), 5);
 /// ```
-pub fn convert_to_spans(vterm: Annot<VTerm>) -> Vec<DrawableSpan> {
-    let (rel_base_x, rel_base_y) = vterm.base_pos();
-    let term_width = vterm.width();
-    let vterm = vterm.into_inner();
+pub fn convert_to_spans(cells: Annot<VTerm>) -> Vec<DrawableSpan> {
+    let (rel_base_x, rel_base_y) = cells.base_pos();
+    let term_width = cells.width();
+    let cells = cells.into_inner();
 
     let mut res = vec![];
     let mut buffer = vec![];
     let mut start_x = rel_base_x;
     let mut start_y = rel_base_y;
 
-    for (i, cell) in vterm.iter().enumerate() {
+    for (i, cell) in cells.into_iter().enumerate() {
         if (i as u16).is_multiple_of(term_width) && !buffer.is_empty() {
             let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
 
@@ -473,7 +483,7 @@ pub fn convert_to_spans(vterm: Annot<VTerm>) -> Vec<DrawableSpan> {
                     start_y = rel_base_y + (i as u16 / term_width);
                 }
 
-                buffer.push(*cell);
+                buffer.push(cell);
             }
             None => {
                 if !buffer.is_empty() {

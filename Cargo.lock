@@ -84,6 +84,9 @@ dependencies = [
 [[package]]
 name = "eired"
 version = "0.1.0"
+dependencies = [
+ "eired-display",
+]
 
 [[package]]
 name = "eired-display"
