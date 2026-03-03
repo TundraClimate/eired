@@ -117,7 +117,9 @@ impl RuntimeConfig {
     }
 }
 
-pub trait RuntimeTask {}
+pub enum RuntimeTask {
+    Close,
+}
 
 struct TaskContext<'a> {
     buffer: &'a mut VTerm,
@@ -153,11 +155,11 @@ pub struct RenderRuntime<W: Write, R: Renderer<W>> {
     config: RuntimeConfig,
     renderer: R,
     optimizer: RenderOptimizer,
-    rx: Receiver<Box<dyn RuntimeTask>>,
+    rx: Receiver<RuntimeTask>,
 }
 
 impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
-    pub fn new(config: RuntimeConfig, renderer: R) -> (Self, Sender<Box<dyn RuntimeTask>>) {
+    pub fn new(config: RuntimeConfig, renderer: R) -> (Self, Sender<RuntimeTask>) {
         let (tx, rx) = channel::bounded(1024);
 
         let rt = Self {
@@ -210,7 +212,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
         }
     }
 
-    fn eval_task(&mut self, task: Result<Box<dyn RuntimeTask>, RecvError>, ctx: TaskContext) {
+    fn eval_task(&mut self, task: Result<RuntimeTask, RecvError>, ctx: TaskContext) {
         todo!()
     }
 
