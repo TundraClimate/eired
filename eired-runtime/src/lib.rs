@@ -1,3 +1,5 @@
+mod terminal;
+
 use std::io::{self, Write};
 use std::marker::PhantomData;
 
@@ -7,6 +9,10 @@ use eired_display::{Annotate, VTerm};
 
 pub trait Renderer<W: Write> {
     fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()>;
+
+    fn store(&mut self, config: &RuntimeConfig) -> io::Result<()>;
+
+    fn restore(&mut self, config: &RuntimeConfig) -> io::Result<()>;
 }
 
 pub struct TerminalRenderer<W: Write> {
@@ -28,6 +34,30 @@ impl<W: Write> Renderer<W> for TerminalRenderer<W> {
         }
 
         self.writer.flush()
+    }
+
+    fn store(&mut self, config: &RuntimeConfig) -> io::Result<()> {
+        if config.alternate_screen {
+            terminal::enter_alternate(&mut self.writer)?;
+        }
+
+        if config.raw_mode {
+            terminal::enable_raw_mode()?;
+        }
+
+        Ok(())
+    }
+
+    fn restore(&mut self, config: &RuntimeConfig) -> io::Result<()> {
+        if config.alternate_screen {
+            terminal::leave_alaternate(&mut self.writer)?;
+        }
+
+        if config.raw_mode {
+            terminal::disable_raw_mode()?;
+        }
+
+        Ok(())
     }
 }
 
@@ -75,16 +105,14 @@ impl RenderOptimizer {
 #[derive(Clone, Copy)]
 pub struct RuntimeConfig {
     fps: u16,
-    base_pos: (u16, u16),
+    pub base_pos: (u16, u16),
+    pub alternate_screen: bool,
+    pub raw_mode: bool,
 }
 
 impl RuntimeConfig {
     fn get_fps_ms(&self) -> f64 {
         1.0 / self.fps as f64
-    }
-
-    fn get_base_pos(&self) -> (u16, u16) {
-        self.base_pos
     }
 }
 
@@ -101,7 +129,17 @@ impl GuardHook {
 }
 
 impl Drop for GuardHook {
-    fn drop(&mut self) {}
+    fn drop(&mut self) {
+        let mut stdout = io::stdout();
+
+        if self.config.alternate_screen {
+            terminal::leave_alaternate(&mut stdout).ok();
+        }
+
+        if self.config.raw_mode {
+            terminal::disable_raw_mode().ok();
+        }
+    }
 }
 
 pub struct RenderRuntime<W: Write, R: Renderer<W>> {
@@ -140,10 +178,14 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     fn store(&mut self) {
-        todo!();
+        let config = self.config;
+
+        self.renderer.store(&config).ok();
     }
 
     fn restore(&mut self) {
-        todo!();
+        let config = self.config;
+
+        self.renderer.restore(&config).ok();
     }
 }
