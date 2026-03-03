@@ -67,8 +67,8 @@ pub struct RenderOptimizer {
 }
 
 impl RenderOptimizer {
-    fn replace_cache(&mut self, new_cache: VTerm) {
-        self.prev_cache = Some(new_cache);
+    fn replace_cache(&mut self, new_cache: Option<VTerm>) {
+        self.prev_cache = new_cache;
     }
 
     fn create_diff(&self, new_term: &VTerm) -> Option<VTerm> {
@@ -122,7 +122,7 @@ pub enum RuntimeTask {
 }
 
 struct TaskContext<'a> {
-    buffer: &'a mut VTerm,
+    buffer: &'a mut Option<VTerm>,
     running: &'a mut bool,
 }
 
@@ -185,7 +185,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
         let tick = channel::tick(Duration::from_secs_f64(self.config.get_fps_tick()));
 
         let mut running = true;
-        let mut buffer = VTerm::new(0, 0, vec![]);
+        let mut buffer = None;
         let mut diff = None;
 
         while running {
@@ -200,14 +200,16 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                 }
 
                 recv(tick) -> _ => {
-                    diff = self.optimizer.create_diff(&buffer);
+                    if let Some(ref buffer) = buffer {
+                        diff = self.optimizer.create_diff(buffer);
+                    }
                 }
             }
 
-            if diff.is_some() {
-                let diff = diff.take().unwrap();
-
+            if let Some(diff) = diff.take() {
                 running = self.renderer.render(&self.config, diff).is_ok();
+
+                self.optimizer.replace_cache(buffer.take());
             }
         }
     }
