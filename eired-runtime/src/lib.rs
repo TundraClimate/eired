@@ -72,6 +72,7 @@ impl RenderOptimizer {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct RuntimeConfig {
     fps: u16,
     base_pos: (u16, u16),
@@ -88,6 +89,20 @@ impl RuntimeConfig {
 }
 
 pub trait RuntimeTask {}
+
+pub struct GuardHook {
+    config: RuntimeConfig,
+}
+
+impl GuardHook {
+    fn new(config: RuntimeConfig) -> Self {
+        Self { config }
+    }
+}
+
+impl Drop for GuardHook {
+    fn drop(&mut self) {}
+}
 
 pub struct RenderRuntime<W: Write, R: Renderer<W>> {
     out: PhantomData<W>,
@@ -113,6 +128,8 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     pub fn run(mut self) {
+        let _hook = GuardHook::new(self.config);
+
         self.store();
         self.change_loop();
         self.restore();
