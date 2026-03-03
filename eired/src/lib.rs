@@ -28,3 +28,34 @@ impl<W: Write> Renderer<W> for TerminalRenderer<W> {
         self.writer.flush()
     }
 }
+
+pub struct RenderOptimizer {
+    prev_cache: VTerm,
+}
+
+impl RenderOptimizer {
+    fn replace_cache(&mut self, new_cache: VTerm) {
+        self.prev_cache = new_cache;
+    }
+
+    fn create_diff(&self, new_term: &VTerm) -> Option<VTerm> {
+        if self.prev_cache.len() != new_term.len() {
+            return Some(new_term.clone());
+        }
+
+        let mut cells = vec![None; new_term.len()];
+        let mut is_changed = false;
+
+        for (i, new_cell) in new_term.iter().enumerate() {
+            if self.prev_cache.get(i) != new_term.get(i) {
+                cells[i] = *new_cell;
+
+                if !is_changed {
+                    is_changed = true;
+                }
+            }
+        }
+
+        is_changed.then_some(VTerm::new(new_term.width(), new_term.height(), cells))
+    }
+}

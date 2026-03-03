@@ -249,7 +249,7 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
     VTerm::new(window_width, window_height, holder).annotate(root)
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 /// A wrapper of [`Vec<Option<Cell>>`].
 ///
 /// # Examples
@@ -354,6 +354,22 @@ impl VTerm {
     /// ```
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
+    }
+
+    /// Returns cell reference at `idx`.
+    ///
+    /// ```
+    /// # use eired_display::VTerm;
+    /// use eired_display::Cell;
+    ///
+    /// let vterm = VTerm::new(3, 1, vec![
+    ///     Some(Cell::new('I')), None, Some(Cell::new('O')),
+    /// ]);
+    ///
+    /// assert_eq!(vterm.get(0), Some(&Some(Cell::new('I'))));
+    /// ```
+    pub fn get(&self, idx: usize) -> Option<&Option<Cell>> {
+        self.cells.get(idx)
     }
 
     /// Returns an inner iter.
