@@ -2,8 +2,3 @@
 name = "eired"
 version = "0.1.0"
 edition.workspace = true
-
-[dependencies]
-eired-display = { path = "../eired-display" }
-
-crossbeam.workspace = true

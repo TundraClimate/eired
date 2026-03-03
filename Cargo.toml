@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "eired-display",
+    "eired-runtime",
     "eired",
 
     "tests",
