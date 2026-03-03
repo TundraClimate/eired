@@ -19,3 +19,4 @@ repository = "https://github.com/TundraClimate/eired"
 
 [workspace.dependencies]
 crossterm = "0.29.0"
+crossbeam = "0.8.4"

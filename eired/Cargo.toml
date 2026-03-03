@@ -5,3 +5,5 @@ edition.workspace = true
 
 [dependencies]
 eired-display = { path = "../eired-display" }
+
+crossbeam.workspace = true
