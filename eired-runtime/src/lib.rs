@@ -112,7 +112,7 @@ pub struct RuntimeConfig {
 }
 
 impl RuntimeConfig {
-    fn get_fps_ms(&self) -> f64 {
+    fn get_fps_tick(&self) -> f64 {
         1.0 / self.fps as f64
     }
 }
@@ -182,7 +182,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     fn change_loop(&mut self) {
-        let tick = channel::tick(Duration::from_secs_f64(self.config.get_fps_ms()));
+        let tick = channel::tick(Duration::from_secs_f64(self.config.get_fps_tick()));
 
         let mut running = true;
         let mut buffer = VTerm::new(0, 0, vec![]);
