@@ -2,8 +2,9 @@ mod terminal;
 
 use std::io::{self, Write};
 use std::marker::PhantomData;
+use std::time::Duration;
 
-use crossbeam::channel::{self, Receiver, Sender};
+use crossbeam::channel::{self, Receiver, RecvError, Sender, select};
 
 use eired_display::{Annotate, VTerm};
 
@@ -118,6 +119,11 @@ impl RuntimeConfig {
 
 pub trait RuntimeTask {}
 
+struct TaskContext<'a> {
+    buffer: &'a mut VTerm,
+    running: &'a mut bool,
+}
+
 pub struct GuardHook {
     config: RuntimeConfig,
 }
@@ -174,7 +180,38 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     fn change_loop(&mut self) {
-        todo!();
+        let tick = channel::tick(Duration::from_secs_f64(self.config.get_fps_ms()));
+
+        let mut running = true;
+        let mut buffer = VTerm::new(0, 0, vec![]);
+        let mut diff = None;
+
+        while running {
+            select! {
+                recv(self.rx) -> task => {
+                    let ctx = TaskContext {
+                        buffer: &mut buffer,
+                        running: &mut running,
+                    };
+
+                    self.eval_task(task, ctx);
+                }
+
+                recv(tick) -> _ => {
+                    diff = self.optimizer.create_diff(&buffer);
+                }
+            }
+
+            if diff.is_some() {
+                let diff = diff.take().unwrap();
+
+                running = self.renderer.render(&self.config, diff).is_ok();
+            }
+        }
+    }
+
+    fn eval_task(&mut self, task: Result<Box<dyn RuntimeTask>, RecvError>, ctx: TaskContext) {
+        todo!()
     }
 
     fn store(&mut self) {
