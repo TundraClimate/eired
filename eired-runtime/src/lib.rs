@@ -1,67 +1,18 @@
 mod config;
+mod renderer;
 mod task;
 mod terminal;
 
-use std::io::{self, Write};
+use std::io::Write;
 use std::marker::PhantomData;
 use std::time::Duration;
 
 use crossbeam::channel::{self, Receiver, Sender, select};
 
-use eired_display::{Annotate, VTerm};
-
 use config::RuntimeConfig;
+use renderer::{RenderOptimizer, Renderer};
 use task::{RuntimeTask, TaskContext};
 use terminal::TerminalGuard;
-
-pub trait Renderer<W: Write> {
-    fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()>;
-
-    fn store(&mut self, config: &RuntimeConfig) -> io::Result<()>;
-
-    fn restore(&mut self, config: &RuntimeConfig) -> io::Result<()>;
-}
-
-struct RenderOptimizer {
-    prev_cache: Option<VTerm>,
-}
-
-impl RenderOptimizer {
-    fn replace_cache(&mut self, new_cache: Option<VTerm>) {
-        self.prev_cache = new_cache;
-    }
-
-    fn create_diff(&self, new_term: &VTerm) -> Option<VTerm> {
-        let Some(ref prev_cache) = self.prev_cache else {
-            return Some(new_term.clone());
-        };
-
-        if prev_cache.len() != new_term.len() {
-            return Some(new_term.clone());
-        }
-
-        let mut cells = vec![None; new_term.len()];
-        let mut is_changed = false;
-
-        for (i, new_cell) in new_term.iter().enumerate() {
-            if prev_cache.get(i) != new_term.get(i) {
-                cells[i] = *new_cell;
-
-                if !is_changed {
-                    is_changed = true;
-                }
-            }
-        }
-
-        is_changed.then_some(VTerm::new(new_term.width(), new_term.height(), cells))
-    }
-}
-
-impl RenderOptimizer {
-    fn new() -> Self {
-        Self { prev_cache: None }
-    }
-}
 
 pub struct RenderRuntime<W: Write, R: Renderer<W>> {
     out: PhantomData<W>,

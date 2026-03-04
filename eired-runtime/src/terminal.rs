@@ -5,8 +5,8 @@ use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 
 use eired_display::{Annotate, VTerm};
 
-use crate::Renderer;
 use crate::config::RuntimeConfig;
+use crate::renderer::Renderer;
 
 fn enter_alternate<W: Write>(w: &mut W) -> io::Result<()> {
     queue!(w, EnterAlternateScreen)
