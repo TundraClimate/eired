@@ -56,6 +56,24 @@ impl DrawableSpan {
         }
     }
 
+    /// Returns raw text.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use eired_display::DrawableSpan;
+    /// use eired_display::Span;
+    ///
+    /// let cmd = DrawableSpan::new((0, 0), Span::from("Hello, World!").to_vec());
+    ///
+    /// println!("{}", cmd.raw_content());
+    /// ```
+    pub fn raw_content(&self) -> String {
+        self.span
+            .iter()
+            .fold("".to_string(), |acc, c| format!("{acc}{}", c.ch))
+    }
+
     /// Apply styles by crossterm.
     ///
     /// # Examples

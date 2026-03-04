@@ -8,7 +8,7 @@ pub enum RuntimeTask {
 }
 
 impl RuntimeTask {
-    pub fn eval(task: Result<RuntimeTask, RecvError>, ctx: TaskContext) {
+    pub(crate) fn eval(task: Result<RuntimeTask, RecvError>, ctx: TaskContext) {
         match task {
             Ok(RuntimeTask::UpdateBuffer(vterm)) => {
                 *ctx.buffer = Some(vterm);
@@ -20,7 +20,7 @@ impl RuntimeTask {
     }
 }
 
-pub struct TaskContext<'a> {
+pub(crate) struct TaskContext<'a> {
     pub(crate) buffer: &'a mut Option<VTerm>,
     pub(crate) running: &'a mut bool,
 }

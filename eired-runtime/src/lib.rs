@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
-mod config;
-mod renderer;
-mod task;
-mod terminal;
+pub mod config;
+pub mod renderer;
+pub mod task;
+pub mod terminal;
 
 use std::io::Write;
 use std::marker::PhantomData;
