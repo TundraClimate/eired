@@ -12,6 +12,7 @@ use eired_display::{Annotate, VTerm};
 
 use config::RuntimeConfig;
 use task::{RuntimeTask, TaskContext};
+use terminal::TerminalGuard;
 
 pub trait Renderer<W: Write> {
     fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()>;
@@ -21,53 +22,7 @@ pub trait Renderer<W: Write> {
     fn restore(&mut self, config: &RuntimeConfig) -> io::Result<()>;
 }
 
-pub struct TerminalRenderer<W: Write> {
-    writer: W,
-}
-
-impl<W: Write> TerminalRenderer<W> {
-    pub fn new(writer: W) -> Self {
-        Self { writer }
-    }
-}
-
-impl<W: Write> Renderer<W> for TerminalRenderer<W> {
-    fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()> {
-        let cmds = eired_display::convert_to_spans(cells.annotate(config.base_pos));
-
-        for cmd in cmds {
-            cmd.draw(&mut self.writer)?;
-        }
-
-        self.writer.flush()
-    }
-
-    fn store(&mut self, config: &RuntimeConfig) -> io::Result<()> {
-        if config.alternate_screen {
-            terminal::enter_alternate(&mut self.writer)?;
-        }
-
-        if config.raw_mode {
-            terminal::enable_raw_mode()?;
-        }
-
-        Ok(())
-    }
-
-    fn restore(&mut self, config: &RuntimeConfig) -> io::Result<()> {
-        if config.alternate_screen {
-            terminal::leave_alaternate(&mut self.writer)?;
-        }
-
-        if config.raw_mode {
-            terminal::disable_raw_mode()?;
-        }
-
-        Ok(())
-    }
-}
-
-pub struct RenderOptimizer {
+struct RenderOptimizer {
     prev_cache: Option<VTerm>,
 }
 
@@ -108,30 +63,6 @@ impl RenderOptimizer {
     }
 }
 
-pub struct GuardHook {
-    config: RuntimeConfig,
-}
-
-impl GuardHook {
-    fn new(config: RuntimeConfig) -> Self {
-        Self { config }
-    }
-}
-
-impl Drop for GuardHook {
-    fn drop(&mut self) {
-        let mut stdout = io::stdout();
-
-        if self.config.alternate_screen {
-            terminal::leave_alaternate(&mut stdout).ok();
-        }
-
-        if self.config.raw_mode {
-            terminal::disable_raw_mode().ok();
-        }
-    }
-}
-
 pub struct RenderRuntime<W: Write, R: Renderer<W>> {
     out: PhantomData<W>,
     config: RuntimeConfig,
@@ -156,7 +87,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     pub fn run(mut self) {
-        let _hook = GuardHook::new(self.config);
+        let _guard = TerminalGuard::new(self.config);
 
         self.store();
         self.change_loop();
