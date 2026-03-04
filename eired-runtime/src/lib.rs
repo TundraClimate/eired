@@ -1,15 +1,17 @@
 mod config;
+mod task;
 mod terminal;
 
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::time::Duration;
 
-use crossbeam::channel::{self, Receiver, RecvError, Sender, select};
+use crossbeam::channel::{self, Receiver, Sender, select};
 
 use eired_display::{Annotate, VTerm};
 
 use config::RuntimeConfig;
+use task::{RuntimeTask, TaskContext};
 
 pub trait Renderer<W: Write> {
     fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()>;
@@ -106,16 +108,6 @@ impl RenderOptimizer {
     }
 }
 
-pub enum RuntimeTask {
-    UpdateBuffer(VTerm),
-    Close,
-}
-
-struct TaskContext<'a> {
-    buffer: &'a mut Option<VTerm>,
-    running: &'a mut bool,
-}
-
 pub struct GuardHook {
     config: RuntimeConfig,
 }
@@ -186,7 +178,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                         running: &mut running,
                     };
 
-                    self.eval_task(task, ctx);
+                    RuntimeTask::eval(task, ctx);
                 }
 
                 recv(tick) -> _ => {
@@ -200,17 +192,6 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                 running = self.renderer.render(&self.config, diff).is_ok();
 
                 self.optimizer.replace_cache(buffer.take());
-            }
-        }
-    }
-
-    fn eval_task(&mut self, task: Result<RuntimeTask, RecvError>, ctx: TaskContext) {
-        match task {
-            Ok(RuntimeTask::UpdateBuffer(vterm)) => {
-                *ctx.buffer = Some(vterm);
-            }
-            Ok(RuntimeTask::Close) | Err(_) => {
-                *ctx.running = false;
             }
         }
     }
