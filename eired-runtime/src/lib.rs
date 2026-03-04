@@ -54,17 +54,35 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
         let mut diff = None;
 
         while running {
-            select! {
-                recv(self.rx) -> task => {
+            match tick {
+                Some(ref tick) => {
+                    select! {
+                        recv(self.rx) -> task => {
+                            let ctx = TaskContext {
+                                buffer: &mut buffer,
+                                running: &mut running,
+                            };
+
+                            RuntimeTask::eval(task, ctx);
+                        }
+
+                        recv(tick) -> _ => {
+                            if let Some(ref buffer) = buffer {
+                                diff = self.optimizer.create_diff(buffer);
+                            }
+                        }
+                    }
+                }
+                None => {
+                    let task = self.rx.recv();
+
                     let ctx = TaskContext {
                         buffer: &mut buffer,
                         running: &mut running,
                     };
 
                     RuntimeTask::eval(task, ctx);
-                }
 
-                recv(tick) -> _ => {
                     if let Some(ref buffer) = buffer {
                         diff = self.optimizer.create_diff(buffer);
                     }

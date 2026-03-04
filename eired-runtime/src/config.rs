@@ -41,21 +41,25 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn build(self) -> Option<RuntimeConfig> {
-        let cfg = RuntimeConfig {
-            ticker: self.receiver?,
+    pub fn no_tick(mut self) -> Self {
+        self.receiver = None;
+
+        self
+    }
+
+    pub fn build(self) -> RuntimeConfig {
+        RuntimeConfig {
+            ticker: self.receiver,
             base_pos: self.base_pos,
             alternate_screen: self.alternate_screen,
             raw_mode: self.raw_mode,
-        };
-
-        Some(cfg)
+        }
     }
 }
 
 #[derive(Clone)]
 pub struct RuntimeConfig {
-    pub(crate) ticker: Receiver<Instant>,
+    pub(crate) ticker: Option<Receiver<Instant>>,
     pub(crate) base_pos: (u16, u16),
     pub(crate) alternate_screen: bool,
     pub(crate) raw_mode: bool,
