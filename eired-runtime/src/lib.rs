@@ -7,7 +7,6 @@ mod terminal;
 
 use std::io::Write;
 use std::marker::PhantomData;
-use std::time::Duration;
 
 use crossbeam::channel::{self, Receiver, Sender, select};
 
@@ -40,7 +39,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     pub fn run(mut self) {
-        let _guard = TerminalGuard::new(self.config);
+        let _guard = TerminalGuard::new(self.config.clone());
 
         self.store();
         self.change_loop();
@@ -48,7 +47,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     fn change_loop(&mut self) {
-        let tick = channel::tick(Duration::from_secs_f64(self.config.get_fps_tick()));
+        let tick = self.config.ticker.clone();
 
         let mut running = true;
         let mut buffer = None;
@@ -81,14 +80,10 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     fn store(&mut self) {
-        let config = self.config;
-
-        self.renderer.store(&config).ok();
+        self.renderer.store(&self.config).ok();
     }
 
     fn restore(&mut self) {
-        let config = self.config;
-
-        self.renderer.restore(&config).ok();
+        self.renderer.restore(&self.config).ok();
     }
 }
