@@ -12,7 +12,7 @@ fn enter_alternate<W: Write>(w: &mut W) -> io::Result<()> {
     queue!(w, EnterAlternateScreen)
 }
 
-fn leave_alaternate<W: Write>(w: &mut W) -> io::Result<()> {
+fn leave_alternate<W: Write>(w: &mut W) -> io::Result<()> {
     queue!(w, LeaveAlternateScreen)
 }
 
@@ -59,7 +59,7 @@ impl<W: Write> Renderer<W> for TerminalRenderer<W> {
 
     fn restore(&mut self, config: &RuntimeConfig) -> io::Result<()> {
         if config.alternate_screen {
-            leave_alaternate(&mut self.writer)?;
+            leave_alternate(&mut self.writer)?;
         }
 
         if config.raw_mode {
@@ -85,7 +85,7 @@ impl Drop for TerminalGuard {
         let mut stdout = io::stdout();
 
         if self.config.alternate_screen {
-            leave_alaternate(&mut stdout).ok();
+            leave_alternate(&mut stdout).ok();
         }
 
         if self.config.raw_mode {
