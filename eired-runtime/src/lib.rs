@@ -118,6 +118,7 @@ impl RuntimeConfig {
 }
 
 pub enum RuntimeTask {
+    UpdateBuffer(VTerm),
     Close,
 }
 
@@ -215,7 +216,14 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     }
 
     fn eval_task(&mut self, task: Result<RuntimeTask, RecvError>, ctx: TaskContext) {
-        todo!()
+        match task {
+            Ok(RuntimeTask::UpdateBuffer(vterm)) => {
+                *ctx.buffer = Some(vterm);
+            }
+            Ok(RuntimeTask::Close) | Err(_) => {
+                *ctx.running = false;
+            }
+        }
     }
 
     fn store(&mut self) {
