@@ -1,3 +1,4 @@
+mod config;
 mod terminal;
 
 use std::io::{self, Write};
@@ -7,6 +8,8 @@ use std::time::Duration;
 use crossbeam::channel::{self, Receiver, RecvError, Sender, select};
 
 use eired_display::{Annotate, VTerm};
+
+use config::RuntimeConfig;
 
 pub trait Renderer<W: Write> {
     fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()>;
@@ -100,20 +103,6 @@ impl RenderOptimizer {
 impl RenderOptimizer {
     fn new() -> Self {
         Self { prev_cache: None }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub struct RuntimeConfig {
-    fps: u16,
-    pub base_pos: (u16, u16),
-    pub alternate_screen: bool,
-    pub raw_mode: bool,
-}
-
-impl RuntimeConfig {
-    fn get_fps_tick(&self) -> f64 {
-        1.0 / self.fps as f64
     }
 }
 
