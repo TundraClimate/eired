@@ -4,6 +4,7 @@ use eired_display::VTerm;
 
 pub enum RuntimeTask {
     UpdateBuffer(VTerm),
+    ClearBuffer,
     Sync(Sender<()>),
     Close,
 }
@@ -13,6 +14,9 @@ impl RuntimeTask {
         match task {
             Ok(RuntimeTask::UpdateBuffer(vterm)) => {
                 *ctx.buffer = Some(vterm);
+            }
+            Ok(RuntimeTask::ClearBuffer) => {
+                *ctx.buffer = None;
             }
             Ok(RuntimeTask::Sync(tx)) => {
                 tx.send(()).ok();
