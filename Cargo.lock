@@ -348,8 +348,10 @@ dependencies = [
 name = "tests"
 version = "0.0.0"
 dependencies = [
+ "crossbeam",
  "crossterm",
  "eired-display",
+ "eired-runtime",
 ]
 
 [[package]]

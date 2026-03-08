@@ -1,9 +1,10 @@
-use crossbeam::channel::RecvError;
+use crossbeam::channel::{RecvError, Sender};
 
 use eired_display::VTerm;
 
 pub enum RuntimeTask {
     UpdateBuffer(VTerm),
+    Sync(Sender<()>),
     Close,
 }
 
@@ -12,6 +13,9 @@ impl RuntimeTask {
         match task {
             Ok(RuntimeTask::UpdateBuffer(vterm)) => {
                 *ctx.buffer = Some(vterm);
+            }
+            Ok(RuntimeTask::Sync(tx)) => {
+                tx.send(()).ok();
             }
             Ok(RuntimeTask::Close) | Err(_) => {
                 *ctx.running = false;
