@@ -27,6 +27,23 @@ pub struct Span {
 }
 
 impl Span {
+    /// Create new span with initialize text.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use eired_display::Span;
+    /// use eired_display::Cell;
+    ///
+    /// let span = Span::new("Hello, World!");
+    ///
+    /// assert_eq!(span.get(0), Some(&Cell::new('H')));
+    /// assert_eq!(span.get(12), Some(&Cell::new('!')));
+    /// ```
+    pub fn new<S: AsRef<str>>(text: S) -> Self {
+        Span::from(text.as_ref())
+    }
+
     /// Create new span with background.
     ///
     /// # Note

@@ -67,7 +67,7 @@ fn make_from_lines(lines: &[&str]) -> VTerm {
     let width = lines[0].len() as u16;
     let height = lines.len() as u16;
 
-    VTerm::new(width, height, cells)
+    VTerm::new(width, height, &cells)
 }
 
 #[test]
