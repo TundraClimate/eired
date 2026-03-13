@@ -4,10 +4,10 @@ use std::thread;
 
 use crossbeam::channel;
 
-use eired_display::{Annotate, Span, VTerm};
+use eired_display::{Annot, Span, VTerm};
 use eired_runtime::RenderRuntime;
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
-use eired_runtime::renderer::Renderer;
+use eired_runtime::renderer::{Diff, Renderer};
 use eired_runtime::task::RuntimeTask;
 
 struct Dummyout;
@@ -28,8 +28,8 @@ struct DummyRenderer {
 }
 
 impl Renderer<Dummyout> for DummyRenderer {
-    fn render(&mut self, _config: &RuntimeConfig, cells: VTerm) -> io::Result<()> {
-        let cmds = eired_display::convert_to_spans(cells.annotate((0, 0)));
+    fn render(&mut self, _config: &RuntimeConfig, diff: Diff) -> io::Result<()> {
+        let cmds = eired_display::convert_to_draws(Annot::new((0, 0), diff.into_vec()));
 
         let contents = &mut *self.contents.lock().unwrap();
 
@@ -95,12 +95,10 @@ fn renderer_update() {
 
     sync_rx.recv().ok();
 
-    assert_eq!(contents.lock().unwrap().len(), 5);
-    assert_eq!(contents.lock().unwrap()[0], "XXX".to_string());
-    assert_eq!(contents.lock().unwrap()[1], "XXX".to_string());
-    assert_eq!(contents.lock().unwrap()[2], "OOO".to_string());
-    assert_eq!(contents.lock().unwrap()[3], "XXX".to_string());
-    assert_eq!(contents.lock().unwrap()[4], "XXX".to_string());
+    assert_eq!(contents.lock().unwrap().len(), 3);
+    assert_eq!(contents.lock().unwrap()[0], "XXX   XXX".to_string());
+    assert_eq!(contents.lock().unwrap()[1], "   OOO   ".to_string());
+    assert_eq!(contents.lock().unwrap()[2], "XXX   XXX".to_string());
 
     tx.send(RuntimeTask::UpdateBuffer(make_from_lines(&[
         "XXX   XXX",
@@ -113,8 +111,8 @@ fn renderer_update() {
 
     sync_rx.recv().ok();
 
-    assert_eq!(contents.lock().unwrap().len(), 6);
-    assert_eq!(contents.lock().unwrap()[5], "XXX".to_string());
+    assert_eq!(contents.lock().unwrap().len(), 4);
+    assert_eq!(contents.lock().unwrap()[3], "XXX".to_string());
 
     tx.send(RuntimeTask::Close).ok();
 

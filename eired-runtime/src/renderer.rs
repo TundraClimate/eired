@@ -1,11 +1,47 @@
 use std::io::{self, Write};
+use std::mem;
 
-use eired_display::{Annotate, VTerm};
+use eired_display::{Annot, Annotate, Cell, Span, VTerm};
 
 use crate::config::RuntimeConfig;
 
+#[derive(Clone)]
+pub struct Diff {
+    spans: Vec<Annot<Span>>,
+}
+
+impl Diff {
+    pub fn new(spans: Vec<Annot<Span>>) -> Self {
+        Self { spans }
+    }
+
+    pub fn into_vec(self) -> Vec<Annot<Span>> {
+        self.spans
+    }
+}
+
+impl From<&VTerm> for Diff {
+    fn from(value: &VTerm) -> Self {
+        // TODO
+        let cells: Vec<Cell> = value
+            .to_vec()
+            .into_iter()
+            .map(Option::unwrap_or_default)
+            .collect();
+
+        let spans = cells
+            .chunks(value.width().into())
+            .map(|cs| Span::from_iter(cs.iter().copied()))
+            .enumerate()
+            .map(|(i, span)| span.annotate((i as u16, 0)))
+            .collect();
+
+        Self { spans }
+    }
+}
+
 pub trait Renderer<W: Write> {
-    fn render(&mut self, config: &RuntimeConfig, cells: VTerm) -> io::Result<()>;
+    fn render(&mut self, config: &RuntimeConfig, diff: Diff) -> io::Result<()>;
 
     fn store(&mut self, config: &RuntimeConfig) -> io::Result<()>;
 
@@ -21,29 +57,45 @@ impl RenderOptimizer {
         self.prev_cache = new_cache;
     }
 
-    pub(crate) fn create_diff(&self, new_term: &VTerm) -> Option<VTerm> {
+    pub(crate) fn create_diff(&self, new_term: &VTerm) -> Option<Diff> {
         let Some(ref prev_cache) = self.prev_cache else {
-            return Some(new_term.clone());
+            return Some(Diff::from(new_term));
         };
 
         if prev_cache.len() != new_term.len() {
-            return Some(new_term.clone());
+            return Some(Diff::from(new_term));
         }
 
-        let mut cells = vec![None; new_term.len()];
-        let mut is_changed = false;
+        let cells = prev_cache.iter().zip(new_term.iter()).collect::<Vec<_>>();
+        let mut spans = vec![];
+        let mut buffer = vec![];
 
-        for (i, new_cell) in new_term.iter().enumerate() {
-            if prev_cache.get(i) != new_term.get(i) {
-                cells[i] = *new_cell;
+        for (y, line) in cells.chunks(new_term.width().into()).enumerate() {
+            let y = y as u16;
+            let mut sx = None;
 
-                if !is_changed {
-                    is_changed = true;
+            for (x, (prev, new)) in line.iter().enumerate() {
+                // TODO
+                let prev = prev.unwrap_or_default();
+                let new = new.unwrap_or_default();
+
+                if prev != new {
+                    if sx.is_none() {
+                        sx = Some(x as u16);
+                    }
+
+                    buffer.push(new);
+                } else if let Some(sx) = sx.take() {
+                    spans.push(Span::from_iter(mem::take(&mut buffer)).annotate((sx, y)))
                 }
+            }
+
+            if let Some(sx) = sx.take() {
+                spans.push(Span::from_iter(mem::take(&mut buffer)).annotate((sx, y)));
             }
         }
 
-        is_changed.then_some(VTerm::new(new_term.width(), new_term.height(), cells))
+        (!spans.is_empty()).then_some(Diff::new(spans))
     }
 }
 

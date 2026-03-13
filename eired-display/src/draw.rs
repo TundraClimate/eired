@@ -5,7 +5,7 @@ use crossterm::cursor::MoveTo;
 use crossterm::queue;
 use crossterm::style::{Print, Stylize};
 
-use crate::{Annot, Cell};
+use crate::{Annot, Cell, Span};
 
 #[derive(PartialEq, Eq)]
 /// A drawing command.
@@ -138,4 +138,21 @@ fn draw<W: Write>(write: &mut W, cmd: &DrawableSpan) -> io::Result<()> {
     let styled = cmd.styled_content();
 
     queue!(write, MoveTo(cmd.moveto.0, cmd.moveto.1), Print(styled))
+}
+
+pub fn convert_to_draws(spans: Annot<Vec<Annot<Span>>>) -> Vec<DrawableSpan> {
+    let (base_x, base_y) = spans.base_pos();
+
+    spans
+        .into_inner()
+        .into_iter()
+        .map(|mut annot| {
+            annot.rebase(|x, y| {
+                *x += base_x;
+                *y += base_y;
+            });
+
+            DrawableSpan::new(annot.base_pos(), annot.into_inner().to_vec())
+        })
+        .collect()
 }

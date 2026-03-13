@@ -42,7 +42,7 @@ use std::fmt::Debug;
 pub use annot::{Annot, Annotate};
 pub use canvas::Canvas;
 pub use cell::Cell;
-pub use draw::DrawableSpan;
+pub use draw::{DrawableSpan, convert_to_draws};
 pub use layer::Layer;
 pub use span::Span;
 pub use view::View;
