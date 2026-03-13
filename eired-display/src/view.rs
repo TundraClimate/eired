@@ -13,7 +13,7 @@ use crate::{Annotate, Cell};
 /// # Examples
 ///
 /// Create by canvas:
-/// ```compile_fail
+/// ```
 /// use eired_display::Canvas;
 /// use eired_display::Layer;
 /// use eired_display::Annotate;
@@ -40,19 +40,19 @@ use crate::{Annotate, Cell};
 /// let mut view_iter = view.into_iter();
 ///
 /// // Line 0
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
 ///
 /// // Line 1
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new(' '))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new(' ')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
 ///
 /// // Line 2
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
 ///
 /// // End
 /// assert_eq!(view_iter.next(), None);
@@ -70,11 +70,13 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::View;
-    /// let min = View::new(1, 1, vec![None]);
+    /// use eired_display::Cell;
     ///
-    /// assert_eq!(min.iter().next(), Some(&None));
+    /// let min = View::new(1, 1, vec![Cell::new('!')]);
+    ///
+    /// assert_eq!(min.iter().next(), Some(&Cell::new('!')));
     /// ```
     pub fn new(width: u16, height: u16, cells: Vec<Cell>) -> Self {
         Self {
@@ -88,9 +90,11 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::View;
-    /// let view = View::new(1, 1, vec![None]);
+    /// use eired_display::Cell;
+    ///
+    /// let view = View::new(1, 1, vec![Cell::new('A')]);
     ///
     /// assert_eq!(view.len(), 1);
     /// ```
@@ -116,18 +120,19 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::View;
+    /// use eired_display::Span;
     /// use eired_display::Cell;
     ///
-    /// let view = View::new(2, 2, vec![None, None, Some(Cell::new('A')), None]);
+    /// let view = View::new(2, 2, Span::from("  A ").to_vec());
     ///
     /// let mut iter = view.iter();
     ///
-    /// assert_eq!(iter.next(), Some(&None));
-    /// assert_eq!(iter.next(), Some(&None));
-    /// assert_eq!(iter.next(), Some(&Some(Cell::new('A'))));
-    /// assert_eq!(iter.next(), Some(&None));
+    /// assert_eq!(iter.next(), Some(&Cell::default()));
+    /// assert_eq!(iter.next(), Some(&Cell::default()));
+    /// assert_eq!(iter.next(), Some(&Cell::new('A')));
+    /// assert_eq!(iter.next(), Some(&Cell::default()));
     /// ```
     pub fn iter<'a>(&'a self) -> Iter<'a, Cell> {
         self.cells.iter()
@@ -137,14 +142,15 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::View;
+    /// use eired_display::Span;
     /// use eired_display::Cell;
     ///
-    /// let view = View::new(2, 2, vec![None, None, Some(Cell::new('A')), None]);
+    /// let view = View::new(2, 2, Span::from("  A ").to_vec());
     ///
-    /// assert_eq!(view.get_line(0), &[None, None]);
-    /// assert_eq!(view.get_line(1), &[Some(Cell::new('A')), None]);
+    /// assert_eq!(view.get_line(0), &[Cell::default(), Cell::default()]);
+    /// assert_eq!(view.get_line(1), &[Cell::new('A'), Cell::default()]);
     /// ```
     pub fn get_line(&self, rows: u16) -> &[Cell] {
         if rows >= self.height {

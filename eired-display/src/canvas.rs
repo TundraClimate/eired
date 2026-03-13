@@ -12,7 +12,7 @@ use crate::{Annot, Cell, Layer, View};
 ///
 /// # Examples
 ///
-/// ```compile_fail
+/// ```
 /// # use eired_display::Canvas;
 /// use eired_display::Layer;
 /// use eired_display::Annotate;
@@ -45,25 +45,25 @@ use crate::{Annot, Cell, Layer, View};
 /// let mut view_iter = view.into_iter();
 ///
 /// // Line 0
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(None));
-/// assert_eq!(view_iter.next(), Some(None));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::default()));
+/// assert_eq!(view_iter.next(), Some(Cell::default()));
 ///
 /// // Line 1
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
 ///
 /// // Line 2
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-/// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+/// assert_eq!(view_iter.next(), Some(Cell::new('O')));
 ///
 /// // End
 /// assert_eq!(view_iter.next(), None);
@@ -258,7 +258,7 @@ impl Canvas {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::Canvas;
     /// use eired_display::Layer;
     /// use eired_display::Annotate;
@@ -284,19 +284,19 @@ impl Canvas {
     /// let mut view_iter = view.into_iter();
     ///
     /// // Line 0
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('X')));
     ///
     /// // Line 1
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new(' '))));
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+    /// assert_eq!(view_iter.next(), Some(Cell::new(' ')));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('O')));
     ///
     /// // Line 2
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('O'))));
-    /// assert_eq!(view_iter.next(), Some(Some(Cell::new('X'))));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('X')));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('O')));
+    /// assert_eq!(view_iter.next(), Some(Cell::new('X')));
     ///
     /// // End
     /// assert_eq!(view_iter.next(), None);
