@@ -20,7 +20,4 @@ mod view;
 mod window;
 
 #[cfg(test)]
-mod draw_cmd;
-
-#[cfg(test)]
 mod renderer;

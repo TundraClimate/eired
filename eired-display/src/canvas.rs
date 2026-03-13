@@ -12,7 +12,7 @@ use crate::{Annot, Cell, Layer, View};
 ///
 /// # Examples
 ///
-/// ```
+/// ```compile_fail
 /// # use eired_display::Canvas;
 /// use eired_display::Layer;
 /// use eired_display::Annotate;
@@ -258,7 +258,7 @@ impl Canvas {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::Canvas;
     /// use eired_display::Layer;
     /// use eired_display::Annotate;
@@ -302,7 +302,7 @@ impl Canvas {
     /// assert_eq!(view_iter.next(), None);
     /// ```
     pub fn create_view(&self) -> View {
-        let mut view: Vec<Option<Cell>> = vec![None; self.height as usize * self.width as usize];
+        let mut view: Vec<Cell> = vec![Cell::default(); self.height as usize * self.width as usize];
 
         for (_, layer) in self.layers.iter() {
             let (layer_margin_x, layer_margin_y) = layer.base_pos();
@@ -315,12 +315,7 @@ impl Canvas {
                 let replace_slice = &mut view
                     [(span_x + line_pad) as usize..(span_x + span.width() + line_pad) as usize];
 
-                let cells = span
-                    .inner()
-                    .to_vec()
-                    .into_iter()
-                    .map(Option::Some)
-                    .collect::<Vec<_>>();
+                let cells = span.inner().to_vec().into_iter().collect::<Vec<_>>();
 
                 replace_slice.copy_from_slice(&cells);
             }

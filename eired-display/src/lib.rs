@@ -46,7 +46,7 @@ pub use draw::{DrawableSpan, convert_to_draws};
 pub use layer::Layer;
 pub use span::Span;
 pub use view::View;
-pub use window::{VTerm, Window, convert_to_spans, create_virtual_terminal};
+pub use window::{VTerm, Window, create_virtual_terminal};
 
 #[derive(PartialEq, Eq)]
 /// A marker struct that represents area.

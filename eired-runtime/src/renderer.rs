@@ -22,12 +22,7 @@ impl Diff {
 
 impl From<&VTerm> for Diff {
     fn from(value: &VTerm) -> Self {
-        // TODO
-        let cells: Vec<Cell> = value
-            .to_vec()
-            .into_iter()
-            .map(Option::unwrap_or_default)
-            .collect();
+        let cells: Vec<Cell> = value.to_vec();
 
         let spans = cells
             .chunks(value.width().into())
@@ -75,9 +70,8 @@ impl RenderOptimizer {
             let mut sx = None;
 
             for (x, (prev, new)) in line.iter().enumerate() {
-                // TODO
-                let prev = prev.unwrap_or_default();
-                let new = new.unwrap_or_default();
+                let prev = **prev;
+                let new = **new;
 
                 if prev != new {
                     if sx.is_none() {

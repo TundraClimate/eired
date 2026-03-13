@@ -56,7 +56,7 @@ fn make_from_lines(lines: &[&str]) -> VTerm {
             let span = Span::from(*l).to_vec();
 
             span.into_iter().fold(vec![], |mut acc, c| {
-                acc.push((c.ch != ' ').then_some(c));
+                acc.push(c);
 
                 acc
             })

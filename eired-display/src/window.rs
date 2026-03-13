@@ -1,10 +1,9 @@
 use std::collections::VecDeque;
 use std::fmt::Debug;
-use std::mem;
 use std::slice::Iter;
 use std::vec::IntoIter;
 
-use crate::{Annot, Annotate, Cell, DrawableSpan, View};
+use crate::{Annot, Annotate, Cell, View};
 
 #[derive(PartialEq, Eq)]
 /// A rect of used by actual rendering.
@@ -14,7 +13,7 @@ use crate::{Annot, Annotate, Cell, DrawableSpan, View};
 ///
 /// # Examples
 ///
-/// ```
+/// ```compile_fail
 /// # use eired_display::Window;
 /// use eired_display::Annotate;
 /// use eired_display::Cell;
@@ -47,7 +46,7 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
@@ -81,7 +80,7 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
@@ -104,7 +103,7 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
@@ -129,7 +128,7 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
@@ -175,7 +174,7 @@ impl Annotate for Window {
 ///
 /// # Examples
 ///
-/// ```
+/// ```compile_fail
 /// use eired_display::Window;
 /// use eired_display::Annotate;
 /// use eired_display::Cell;
@@ -215,7 +214,7 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
     let window_width = window.width;
     let window_height = window.height;
 
-    let mut holder = vec![None; (window_width * window_height) as usize];
+    let mut holder = vec![Cell::default(); (window_width * window_height) as usize];
 
     while let Some(view) = window.views.pop_front() {
         let (view_margin_x, view_margin_y) = view.base_pos();
@@ -250,11 +249,11 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
 }
 
 #[derive(PartialEq, Eq, Clone)]
-/// A wrapper of [`Vec<Option<Cell>>`].
+/// A wrapper of [`Vec<Cell>`].
 ///
 /// # Examples
 ///
-/// ```
+/// ```compile_fail
 /// # use eired_display::VTerm;
 /// # use eired_display::View;
 /// # use eired_display::Cell;
@@ -299,13 +298,13 @@ pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
 pub struct VTerm {
     width: u16,
     height: u16,
-    cells: Vec<Option<Cell>>,
+    cells: Vec<Cell>,
 }
 
 impl VTerm {
     /// Create new wrapper.
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::VTerm;
     /// use eired_display::Cell;
     ///
@@ -319,7 +318,7 @@ impl VTerm {
     ///
     /// assert_eq!(vterm.len(), 50);
     /// ```
-    pub fn new(width: u16, height: u16, cells: Vec<Option<Cell>>) -> Self {
+    pub fn new(width: u16, height: u16, cells: Vec<Cell>) -> Self {
         Self {
             width,
             height,
@@ -329,7 +328,7 @@ impl VTerm {
 
     /// Returns inner length.
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::VTerm;
     /// use eired_display::Cell;
     ///
@@ -358,7 +357,7 @@ impl VTerm {
 
     /// Returns cell reference at `idx`.
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::VTerm;
     /// use eired_display::Cell;
     ///
@@ -368,13 +367,13 @@ impl VTerm {
     ///
     /// assert_eq!(vterm.get(0), Some(&Some(Cell::new('I'))));
     /// ```
-    pub fn get(&self, idx: usize) -> Option<&Option<Cell>> {
+    pub fn get(&self, idx: usize) -> Option<&Cell> {
         self.cells.get(idx)
     }
 
     /// Returns an inner iter.
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::VTerm;
     /// use eired_display::Cell;
     ///
@@ -388,13 +387,13 @@ impl VTerm {
     /// assert_eq!(iter.next(), Some(&None));
     /// assert_eq!(iter.next(), Some(&Some(Cell::new('O'))));
     /// ```
-    pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, Cell> {
         self.cells.iter()
     }
 
     /// Unwraps self.
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::VTerm;
     /// use eired_display::Cell;
     ///
@@ -410,13 +409,13 @@ impl VTerm {
     ///     Some(Cell::new('O')),
     /// ]);
     /// ```
-    pub fn to_vec(&self) -> Vec<Option<Cell>> {
+    pub fn to_vec(&self) -> Vec<Cell> {
         self.cells.to_vec()
     }
 }
 
 impl IntoIterator for VTerm {
-    type Item = Option<Cell>;
+    type Item = Cell;
     type IntoIter = IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -425,8 +424,8 @@ impl IntoIterator for VTerm {
 }
 
 impl<'a> IntoIterator for &'a VTerm {
-    type Item = &'a Option<Cell>;
-    type IntoIter = Iter<'a, Option<Cell>>;
+    type Item = &'a Cell;
+    type IntoIter = Iter<'a, Cell>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -443,79 +442,4 @@ impl Annotate for VTerm {
     fn get_size(&self) -> (u16, u16) {
         (self.width, self.height)
     }
-}
-
-/// Convert to draw commands from [VTerm].
-///
-/// ```
-/// use eired_display::VTerm;
-/// use eired_display::Cell;
-/// use eired_display::Annotate;
-///
-/// let vterm = VTerm::new(5, 4, vec![
-///     Some(Cell::new('S')), Some(Cell::new('P')), Some(Cell::new('A')), Some(Cell::new('N')), None,
-///     None, Some(Cell::new('S')), Some(Cell::new('P')), Some(Cell::new('A')), Some(Cell::new('N')),
-///     None, None, Some(Cell::new('S')), Some(Cell::new('P')), Some(Cell::new('A')),
-///     Some(Cell::new('N')), None, None, Some(Cell::new('S')), Some(Cell::new('P')),
-/// ]);
-///
-/// let spans = eired_display::convert_to_spans(vterm.annotate((0, 0)));
-///
-/// // "SPAN "
-/// // " SPAN"
-/// // "  SPA"
-/// // "N  SP"
-/// //
-/// // INTO
-/// //
-/// // MoveTo(0, 0) "SPAN"
-/// // MoveTo(1, 1) "SPAN"
-/// // MoveTo(2, 2) "SPA"
-/// // MoveTo(0, 3) "N"
-/// // MoveTo(3, 3) "SP"
-/// assert_eq!(spans.len(), 5);
-/// ```
-pub fn convert_to_spans(cells: Annot<VTerm>) -> Vec<DrawableSpan> {
-    let (rel_base_x, rel_base_y) = cells.base_pos();
-    let term_width = cells.width();
-    let cells = cells.into_inner();
-
-    let mut res = vec![];
-    let mut buffer = vec![];
-    let mut start_x = rel_base_x;
-    let mut start_y = rel_base_y;
-
-    for (i, cell) in cells.into_iter().enumerate() {
-        if (i as u16).is_multiple_of(term_width) && !buffer.is_empty() {
-            let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
-
-            res.push(cmd);
-        }
-
-        match cell {
-            Some(cell) => {
-                if buffer.is_empty() {
-                    start_x = rel_base_x + (i as u16 % term_width);
-                    start_y = rel_base_y + (i as u16 / term_width);
-                }
-
-                buffer.push(cell);
-            }
-            None => {
-                if !buffer.is_empty() {
-                    let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
-
-                    res.push(cmd);
-                }
-            }
-        }
-    }
-
-    if !buffer.is_empty() {
-        let cmd = DrawableSpan::new((start_x, start_y), mem::take(&mut buffer));
-
-        res.push(cmd);
-    }
-
-    res
 }

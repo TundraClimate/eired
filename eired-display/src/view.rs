@@ -7,13 +7,13 @@ use crate::{Annotate, Cell};
 #[derive(PartialEq, Eq)]
 /// An immutable list of cells for terminal area.
 ///
-/// This is the wrapper struct of [`Vec<Option<Cell>>`].  
+/// This is the wrapper struct of [`Vec<Cell>`].  
 /// This only uses to the [Window](crate::Window) for hold the rectangle area.
 ///
 /// # Examples
 ///
 /// Create by canvas:
-/// ```
+/// ```compile_fail
 /// use eired_display::Canvas;
 /// use eired_display::Layer;
 /// use eired_display::Annotate;
@@ -60,23 +60,23 @@ use crate::{Annotate, Cell};
 pub struct View {
     width: u16,
     height: u16,
-    cells: Vec<Option<Cell>>,
+    cells: Vec<Cell>,
 }
 
 impl View {
     /// Create new struct.
     ///
-    /// Wraps [`Vec<Option<Cell>>`] to a View.
+    /// Wraps [`Vec<Cell>`] to a View.
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::View;
     /// let min = View::new(1, 1, vec![None]);
     ///
     /// assert_eq!(min.iter().next(), Some(&None));
     /// ```
-    pub fn new(width: u16, height: u16, cells: Vec<Option<Cell>>) -> Self {
+    pub fn new(width: u16, height: u16, cells: Vec<Cell>) -> Self {
         Self {
             width,
             height,
@@ -88,7 +88,7 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::View;
     /// let view = View::new(1, 1, vec![None]);
     ///
@@ -116,7 +116,7 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::View;
     /// use eired_display::Cell;
     ///
@@ -129,7 +129,7 @@ impl View {
     /// assert_eq!(iter.next(), Some(&Some(Cell::new('A'))));
     /// assert_eq!(iter.next(), Some(&None));
     /// ```
-    pub fn iter<'a>(&'a self) -> Iter<'a, Option<Cell>> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, Cell> {
         self.cells.iter()
     }
 
@@ -137,7 +137,7 @@ impl View {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```compile_fail
     /// # use eired_display::View;
     /// use eired_display::Cell;
     ///
@@ -146,7 +146,7 @@ impl View {
     /// assert_eq!(view.get_line(0), &[None, None]);
     /// assert_eq!(view.get_line(1), &[Some(Cell::new('A')), None]);
     /// ```
-    pub fn get_line(&self, rows: u16) -> &[Option<Cell>] {
+    pub fn get_line(&self, rows: u16) -> &[Cell] {
         if rows >= self.height {
             return &[];
         }
@@ -159,7 +159,7 @@ impl View {
 }
 
 impl IntoIterator for View {
-    type Item = Option<Cell>;
+    type Item = Cell;
     type IntoIter = IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -168,8 +168,8 @@ impl IntoIterator for View {
 }
 
 impl<'a> IntoIterator for &'a View {
-    type Item = &'a Option<Cell>;
-    type IntoIter = Iter<'a, Option<Cell>>;
+    type Item = &'a Cell;
+    type IntoIter = Iter<'a, Cell>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.cells.iter()

@@ -63,7 +63,7 @@ fn create_view() {
 
     assert!(view.len() == 3 * 3);
 
-    for cell in view.iter().flatten() {
+    for cell in view.iter() {
         assert_eq!(cell, &Cell::from('.'))
     }
 }
@@ -91,26 +91,26 @@ fn create_view_with_multi_layer() {
     let view = canvas.create_view();
 
     let expected = [
-        Some(Cell::from('.')),
-        Some(Cell::from('.')),
-        Some(Cell::from('.')),
-        None,
-        Some(Cell::from('.')),
-        Some(Cell::from('.')),
-        Some(Cell::from('.')),
-        None,
-        Some(Cell::from('.')),
-        Some(Cell::from('O')),
-        Some(Cell::from('O')),
-        Some(Cell::from('O')),
-        None,
-        Some(Cell::from('O')),
-        Some(Cell::from('O')),
-        Some(Cell::from('O')),
-        None,
-        Some(Cell::from('O')),
-        Some(Cell::from('O')),
-        Some(Cell::from('O')),
+        Cell::from('.'),
+        Cell::from('.'),
+        Cell::from('.'),
+        Cell::default(),
+        Cell::from('.'),
+        Cell::from('.'),
+        Cell::from('.'),
+        Cell::default(),
+        Cell::from('.'),
+        Cell::from('O'),
+        Cell::from('O'),
+        Cell::from('O'),
+        Cell::default(),
+        Cell::from('O'),
+        Cell::from('O'),
+        Cell::from('O'),
+        Cell::default(),
+        Cell::from('O'),
+        Cell::from('O'),
+        Cell::from('O'),
     ];
 
     assert!(view.len() == expected.len());
