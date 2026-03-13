@@ -3,8 +3,6 @@ use std::io::{self, Write};
 use crossterm::queue;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 
-use eired_display::Annot;
-
 use crate::config::RuntimeConfig;
 use crate::renderer::{Diff, Renderer};
 
@@ -36,7 +34,7 @@ impl<W: Write> TerminalRenderer<W> {
 
 impl<W: Write> Renderer<W> for TerminalRenderer<W> {
     fn render(&mut self, config: &RuntimeConfig, diff: Diff) -> io::Result<()> {
-        let cmds = eired_display::convert_to_draws(Annot::new(config.base_pos, diff.into_vec()));
+        let cmds = eired_display::convert_to_draws(config.base_pos, diff.into_vec());
 
         for cmd in cmds {
             cmd.draw(&mut self.writer)?;

@@ -4,7 +4,7 @@ use std::thread;
 
 use crossbeam::channel;
 
-use eired_display::{Annot, Span, VTerm};
+use eired_display::{Span, VTerm};
 use eired_runtime::RenderRuntime;
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::renderer::{Diff, Renderer};
@@ -29,7 +29,7 @@ struct DummyRenderer {
 
 impl Renderer<Dummyout> for DummyRenderer {
     fn render(&mut self, _config: &RuntimeConfig, diff: Diff) -> io::Result<()> {
-        let cmds = eired_display::convert_to_draws(Annot::new((0, 0), diff.into_vec()));
+        let cmds = eired_display::convert_to_draws((0, 0), diff.into_vec());
 
         let contents = &mut *self.contents.lock().unwrap();
 

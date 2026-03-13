@@ -140,11 +140,10 @@ fn draw<W: Write>(write: &mut W, cmd: &DrawableSpan) -> io::Result<()> {
     queue!(write, MoveTo(cmd.moveto.0, cmd.moveto.1), Print(styled))
 }
 
-pub fn convert_to_draws(spans: Annot<Vec<Annot<Span>>>) -> Vec<DrawableSpan> {
-    let (base_x, base_y) = spans.base_pos();
+pub fn convert_to_draws(base_pos: (u16, u16), spans: Vec<Annot<Span>>) -> Vec<DrawableSpan> {
+    let (base_x, base_y) = base_pos;
 
     spans
-        .into_inner()
         .into_iter()
         .map(|mut annot| {
             annot.rebase(|x, y| {
