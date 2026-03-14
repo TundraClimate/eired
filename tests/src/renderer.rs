@@ -1,6 +1,5 @@
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
-use std::thread;
 
 use crossbeam::channel;
 
@@ -78,9 +77,7 @@ fn renderer_update() {
     let (runtime, tx) = RenderRuntime::new(config, renderer);
     let (sync_tx, sync_rx) = channel::bounded(10);
 
-    let handle = thread::spawn(move || {
-        runtime.run();
-    });
+    let handle = runtime.spawn();
 
     assert_eq!(contents.lock().unwrap().len(), 0);
 
