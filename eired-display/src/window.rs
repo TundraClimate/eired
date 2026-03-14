@@ -13,16 +13,16 @@ use crate::{Annot, Annotate, Cell, Span, View};
 ///
 /// # Examples
 ///
-/// ```compile_fail
+/// ```
 /// # use eired_display::Window;
 /// use eired_display::Annotate;
 /// use eired_display::Cell;
 /// use eired_display::View;
 ///
 /// let view = View::new(3, 1, vec![
-///     Some(Cell::new('O')),
-///     Some(Cell::new('O')),
-///     Some(Cell::new('O')),
+///     Cell::new('O'),
+///     Cell::new('O'),
+///     Cell::new('O'),
 /// ]);
 ///
 /// let mut window = Window::new(5, 2);
@@ -46,16 +46,16 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
     /// use eired_display::View;
     ///
     /// let view = View::new(3, 1, vec![
-    ///     Some(Cell::new('O')),
-    ///     Some(Cell::new('O')),
-    ///     Some(Cell::new('O')),
+    ///     Cell::new('O'),
+    ///     Cell::new('O'),
+    ///     Cell::new('O'),
     /// ]);
     ///
     /// let mut window = Window::new(5, 2);
@@ -80,15 +80,15 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
     /// use eired_display::View;
     ///
     /// let window = Window::from_views(2, 2, vec![
-    ///     View::new(3, 1, vec![None, None, None]).annotate((0, 0)),
-    ///     View::new(2, 1, vec![Some(Cell::new('I')), None]).annotate((0, 1)),
+    ///     View::new(3, 1, vec![Cell::default(), Cell::default(), Cell::default()]).annotate((0, 0)),
+    ///     View::new(2, 1, vec![Cell::new('I'), Cell::default()]).annotate((0, 1)),
     /// ]);
     /// ```
     pub fn from_views(width: u16, height: u16, views: Vec<Annot<View>>) -> Self {
@@ -103,15 +103,15 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
     /// use eired_display::View;
     ///
     /// let mut window = Window::from_views(2, 2, vec![
-    ///     View::new(2, 1, vec![None, None]).annotate((0, 0)),
-    ///     View::new(2, 1, vec![None, None]).annotate((0, 0)),
+    ///     View::new(2, 1, vec![Cell::default(), Cell::default()]).annotate((0, 0)),
+    ///     View::new(2, 1, vec![Cell::default(), Cell::default()]).annotate((0, 0)),
     /// ]);
     ///
     /// window.resize(3, 3);
@@ -128,16 +128,16 @@ impl Window {
     ///
     /// # Examples
     ///
-    /// ```compile_fail
+    /// ```
     /// # use eired_display::Window;
     /// use eired_display::Annotate;
     /// use eired_display::Cell;
     /// use eired_display::View;
     ///
     /// let view = View::new(3, 1, vec![
-    ///     Some(Cell::new('O')),
-    ///     Some(Cell::new('O')),
-    ///     Some(Cell::new('O')),
+    ///     Cell::new('O'),
+    ///     Cell::new('O'),
+    ///     Cell::new('O'),
     /// ]);
     ///
     /// let mut window = Window::new(5, 2);
@@ -174,7 +174,7 @@ impl Annotate for Window {
 ///
 /// # Examples
 ///
-/// ```compile_fail
+/// ```
 /// use eired_display::Window;
 /// use eired_display::Annotate;
 /// use eired_display::Cell;
@@ -182,16 +182,16 @@ impl Annotate for Window {
 /// use eired_display::VTerm;
 ///
 /// let view = View::new(10, 1, vec![
-///     Some(Cell::new('I')),
-///     None,
-///     None,
-///     None,
-///     None,
-///     None,
-///     None,
-///     None,
-///     None,
-///     Some(Cell::new('O')),
+///     Cell::new('I'),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::default(),
+///     Cell::new('O'),
 /// ]);
 ///
 /// let window = Window::from_views(10, 5, vec![
