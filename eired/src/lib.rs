@@ -16,18 +16,24 @@ pub struct TuiEngine<W: Write> {
 
 impl<W: Write + Send + 'static> TuiEngine<W> {
     pub fn run<F: FnOnce()>(self, process: F) {
-        let _tx = self.tx;
+        let tx = self.tx;
+        let _guard = ClosingGuard { tx: tx.clone() };
 
         self.runtime.spawn();
         process()
     }
 
-    pub fn spawn<F: FnOnce() + Send + 'static>(self, process: F) -> impl Future<Output = ()> {
-        let _tx = self.tx;
+    pub fn run_lazy<F: FnOnce() + Send + 'static>(self, process: F) -> impl Future<Output = ()> {
+        let tx = self.tx;
+        let guard = ClosingGuard { tx: tx.clone() };
 
         self.runtime.spawn();
 
-        async move { process() }
+        async move {
+            let _guard = guard;
+
+            process()
+        }
     }
 }
 
@@ -67,5 +73,15 @@ impl From<TuiConfig> for RuntimeConfig {
             .fps(value.fps)
             .base_pos(value.base_pos)
             .build()
+    }
+}
+
+struct ClosingGuard {
+    tx: Sender<RuntimeTask>,
+}
+
+impl Drop for ClosingGuard {
+    fn drop(&mut self) {
+        self.tx.send(RuntimeTask::Close).ok();
     }
 }
