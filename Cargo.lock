@@ -140,6 +140,11 @@ dependencies = [
 [[package]]
 name = "eired"
 version = "0.1.0"
+dependencies = [
+ "crossbeam",
+ "eired-display",
+ "eired-runtime",
+]
 
 [[package]]
 name = "eired-display"
