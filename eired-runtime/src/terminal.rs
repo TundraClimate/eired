@@ -1,17 +1,17 @@
 use std::io::{self, Write};
 
-use crossterm::queue;
+use crossterm::execute;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 
 use crate::config::RuntimeConfig;
 use crate::renderer::{Diff, Renderer};
 
 fn enter_alternate<W: Write>(w: &mut W) -> io::Result<()> {
-    queue!(w, EnterAlternateScreen)
+    execute!(w, EnterAlternateScreen)
 }
 
 fn leave_alternate<W: Write>(w: &mut W) -> io::Result<()> {
-    queue!(w, LeaveAlternateScreen)
+    execute!(w, LeaveAlternateScreen)
 }
 
 fn enable_raw_mode() -> io::Result<()> {
