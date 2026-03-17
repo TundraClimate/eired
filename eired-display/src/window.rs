@@ -191,7 +191,7 @@ impl Window {
     ///
     /// let vterm = window.into_vterm();
     ///
-    /// assert_eq!(vterm.inner().len(), 50);
+    /// assert_eq!(vterm.len(), 50);
     /// ```
     pub fn into_vterm(mut self) -> VTerm {
         let window_width = self.width;
