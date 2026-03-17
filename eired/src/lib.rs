@@ -3,13 +3,24 @@
 use std::io::{self, Stdout, Write};
 use std::mem;
 
-use crossbeam::channel::Sender;
+use crossbeam::channel::{SendError, Sender};
 
-use eired_display::{Annotate, VTerm, Window};
+use eired_display::{Annot, Annotate, VTerm, View, Window};
 use eired_runtime::RenderRuntime;
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;
 use eired_runtime::terminal::TerminalRenderer;
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+pub enum Error {
+    Io(io::Error),
+    Send(SendError<RuntimeTask>),
+}
+
+fn handle_err(_err: Error) {
+    todo!()
+}
 
 pub struct TuiEngine<W: Write> {
     runtime: RenderRuntime<W, TerminalRenderer<W>>,
@@ -18,15 +29,18 @@ pub struct TuiEngine<W: Write> {
 }
 
 impl<W: Write + Send + 'static> TuiEngine<W> {
-    pub fn run<F: FnOnce(&mut Frame)>(mut self, process: F) {
+    pub fn run<F: FnOnce(&mut Frame) -> Result<()>>(mut self, process: F) {
         let tx = self.tx;
         let _guard = ClosingGuard { tx: tx.clone() };
 
         self.runtime.spawn();
-        process(&mut self.frame);
+
+        if let Err(e) = process(&mut self.frame) {
+            handle_err(e);
+        }
     }
 
-    pub fn run_lazy<F: FnOnce(&mut Frame) + Send + 'static>(
+    pub fn run_lazy<F: FnOnce(&mut Frame) -> Result<()> + Send + 'static>(
         mut self,
         process: F,
     ) -> impl Future<Output = ()> {
@@ -38,7 +52,9 @@ impl<W: Write + Send + 'static> TuiEngine<W> {
         async move {
             let _guard = guard;
 
-            process(&mut self.frame)
+            if let Err(e) = process(&mut self.frame) {
+                handle_err(e);
+            }
         }
     }
 }
@@ -115,9 +131,15 @@ impl Frame {
         ejected.into_vterm()
     }
 
-    pub fn update_frame(&mut self) {
+    pub fn overlap(&mut self, view: Annot<View>) {
+        self.window.overlap(view);
+    }
+
+    pub fn update_frame(&mut self) -> Result<()> {
         let vterm = self.create_vterm();
 
-        self.tx.send(RuntimeTask::UpdateBuffer(vterm)).ok();
+        self.tx
+            .send(RuntimeTask::UpdateBuffer(vterm))
+            .map_err(Error::Send)
     }
 }
