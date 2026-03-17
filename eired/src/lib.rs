@@ -31,13 +31,16 @@ pub struct TuiEngine<W: Write> {
 impl<W: Write + Send + 'static> TuiEngine<W> {
     pub fn run<F: FnOnce(&mut Frame) -> Result<()>>(mut self, process: F) {
         let tx = self.tx;
-        let _guard = ClosingGuard { tx: tx.clone() };
+        let handle = self.runtime.spawn();
 
-        self.runtime.spawn();
+        let procs =
+            process(&mut self.frame).and_then(|_| tx.send(RuntimeTask::Close).map_err(Error::Send));
 
-        if let Err(e) = process(&mut self.frame) {
+        if let Err(e) = procs {
             handle_err(e);
         }
+
+        handle.join().ok();
     }
 
     pub fn run_lazy<F: FnOnce(&mut Frame) -> Result<()> + Send + 'static>(
@@ -45,16 +48,17 @@ impl<W: Write + Send + 'static> TuiEngine<W> {
         process: F,
     ) -> impl Future<Output = ()> {
         let tx = self.tx;
-        let guard = ClosingGuard { tx: tx.clone() };
-
-        self.runtime.spawn();
+        let handle = self.runtime.spawn();
 
         async move {
-            let _guard = guard;
+            let procs = process(&mut self.frame)
+                .and_then(|_| tx.send(RuntimeTask::Close).map_err(Error::Send));
 
-            if let Err(e) = process(&mut self.frame) {
+            if let Err(e) = procs {
                 handle_err(e);
             }
+
+            handle.join().ok();
         }
     }
 }
@@ -98,16 +102,6 @@ impl From<TuiConfig> for RuntimeConfig {
             .fps(value.fps)
             .base_pos(value.base_pos)
             .build()
-    }
-}
-
-struct ClosingGuard {
-    tx: Sender<RuntimeTask>,
-}
-
-impl Drop for ClosingGuard {
-    fn drop(&mut self) {
-        self.tx.send(RuntimeTask::Close).ok();
     }
 }
 

@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::panic;
 
 use crossterm::execute;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
@@ -44,6 +45,8 @@ impl<W: Write> Renderer<W> for TerminalRenderer<W> {
     }
 
     fn store(&mut self, config: &RuntimeConfig) -> io::Result<()> {
+        install_panic_hook();
+
         if config.alternate_screen {
             enter_alternate(&mut self.writer)?;
         }
@@ -68,26 +71,22 @@ impl<W: Write> Renderer<W> for TerminalRenderer<W> {
     }
 }
 
-pub(crate) struct TerminalGuard {
-    config: RuntimeConfig,
+fn install_panic_hook() {
+    let default_hook = panic::take_hook();
+
+    panic::set_hook(Box::new(move |info| {
+        let _ = force_restore_terminal();
+
+        default_hook(info);
+    }));
 }
 
-impl TerminalGuard {
-    pub(crate) fn new(config: RuntimeConfig) -> Self {
-        Self { config }
-    }
-}
+fn force_restore_terminal() -> io::Result<()> {
+    let mut stderr = io::stderr();
 
-impl Drop for TerminalGuard {
-    fn drop(&mut self) {
-        let mut stdout = io::stdout();
+    leave_alternate(&mut stderr)?;
 
-        if self.config.alternate_screen {
-            leave_alternate(&mut stdout).ok();
-        }
+    disable_raw_mode()?;
 
-        if self.config.raw_mode {
-            disable_raw_mode().ok();
-        }
-    }
+    Ok(())
 }

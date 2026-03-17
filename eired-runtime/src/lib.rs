@@ -14,7 +14,6 @@ use crossbeam::channel::{self, Receiver, Sender, select};
 use config::RuntimeConfig;
 use renderer::{RenderOptimizer, Renderer};
 use task::{RuntimeTask, TaskContext};
-use terminal::TerminalGuard;
 
 /// A runtime of renderer the standalone rendering thread.
 ///
@@ -111,8 +110,6 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
     /// runtime.run();
     /// ```
     pub fn run(mut self) {
-        let _guard = TerminalGuard::new(self.config.clone());
-
         self.store();
         self.change_loop();
         self.restore();
