@@ -153,6 +153,83 @@ impl Window {
     pub fn overlap(&mut self, view: Annot<View>) {
         self.views.push_back(view);
     }
+
+    /// Convert to [VTerm] from [Window].
+    ///
+    /// [`VTerm`] inherit the size of [`Window`] and truncates the invisible sides.
+    /// Write the layers in order, the last view displays on top.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use eired_display::Window;
+    /// use eired_display::Annotate;
+    /// use eired_display::Cell;
+    /// use eired_display::View;
+    /// use eired_display::VTerm;
+    ///
+    /// let view = View::new(10, 1, vec![
+    ///     Cell::new('I'),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::default(),
+    ///     Cell::new('O'),
+    /// ]);
+    ///
+    /// let window = Window::from_views(10, 5, vec![
+    ///     view.clone().annotate((0, 0)),
+    ///     view.clone().annotate((0, 1)),
+    ///     view.clone().annotate((0, 2)),
+    ///     view.clone().annotate((0, 3)),
+    ///     view.clone().annotate((0, 4)),
+    /// ]);
+    ///
+    /// let vterm = window.into_vterm();
+    ///
+    /// assert_eq!(vterm.inner().len(), 50);
+    /// ```
+    pub fn into_vterm(mut self) -> VTerm {
+        let window_width = self.width;
+        let window_height = self.height;
+
+        let mut holder = vec![Cell::default(); (window_width * window_height) as usize];
+
+        while let Some(view) = self.views.pop_front() {
+            let (view_margin_x, view_margin_y) = view.base_pos();
+
+            let drawable_width = window_width
+                .min(view.width() + view_margin_x)
+                .saturating_sub(view_margin_x) as usize;
+            let drawable_height = window_height
+                .min(view.height() + view_margin_y)
+                .saturating_sub(view_margin_y);
+
+            if drawable_width == 0 || drawable_height == 0 {
+                continue;
+            }
+
+            let view = view.into_inner();
+
+            for rel_y in 0..drawable_height {
+                let line = &view.get_line(rel_y);
+                let view_margin_x = view_margin_x as usize;
+
+                let src = &line[..drawable_width];
+                let dst_begin = (window_width * (view_margin_y + rel_y)) as usize + view_margin_x;
+
+                let dst = &mut holder[dst_begin..dst_begin + drawable_width];
+
+                dst.copy_from_slice(src);
+            }
+        }
+
+        VTerm::new(window_width, window_height, &holder)
+    }
 }
 
 impl Debug for Window {
@@ -209,43 +286,7 @@ impl Annotate for Window {
 pub fn create_virtual_terminal(window: Annot<Window>) -> Annot<VTerm> {
     let root = window.base_pos();
 
-    let mut window = window.into_inner();
-
-    let window_width = window.width;
-    let window_height = window.height;
-
-    let mut holder = vec![Cell::default(); (window_width * window_height) as usize];
-
-    while let Some(view) = window.views.pop_front() {
-        let (view_margin_x, view_margin_y) = view.base_pos();
-
-        let drawable_width = window_width
-            .min(view.width() + view_margin_x)
-            .saturating_sub(view_margin_x) as usize;
-        let drawable_height = window_height
-            .min(view.height() + view_margin_y)
-            .saturating_sub(view_margin_y);
-
-        if drawable_width == 0 || drawable_height == 0 {
-            continue;
-        }
-
-        let view = view.into_inner();
-
-        for rel_y in 0..drawable_height {
-            let line = &view.get_line(rel_y);
-            let view_margin_x = view_margin_x as usize;
-
-            let src = &line[..drawable_width];
-            let dst_begin = (window_width * (view_margin_y + rel_y)) as usize + view_margin_x;
-
-            let dst = &mut holder[dst_begin..dst_begin + drawable_width];
-
-            dst.copy_from_slice(src);
-        }
-    }
-
-    VTerm::new(window_width, window_height, &holder).annotate(root)
+    window.into_inner().into_vterm().annotate(root)
 }
 
 #[derive(PartialEq, Eq, Clone)]

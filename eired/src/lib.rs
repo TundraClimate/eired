@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 
 use std::io::{self, Stdout, Write};
+use std::mem;
 
 use crossbeam::channel::Sender;
 
+use eired_display::{Annotate, VTerm, Window};
 use eired_runtime::RenderRuntime;
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;
@@ -11,19 +13,23 @@ use eired_runtime::terminal::TerminalRenderer;
 
 pub struct TuiEngine<W: Write> {
     runtime: RenderRuntime<W, TerminalRenderer<W>>,
+    frame: Frame,
     tx: Sender<RuntimeTask>,
 }
 
 impl<W: Write + Send + 'static> TuiEngine<W> {
-    pub fn run<F: FnOnce()>(self, process: F) {
+    pub fn run<F: FnOnce(&mut Frame)>(mut self, process: F) {
         let tx = self.tx;
         let _guard = ClosingGuard { tx: tx.clone() };
 
         self.runtime.spawn();
-        process()
+        process(&mut self.frame);
     }
 
-    pub fn run_lazy<F: FnOnce() + Send + 'static>(self, process: F) -> impl Future<Output = ()> {
+    pub fn run_lazy<F: FnOnce(&mut Frame) + Send + 'static>(
+        mut self,
+        process: F,
+    ) -> impl Future<Output = ()> {
         let tx = self.tx;
         let guard = ClosingGuard { tx: tx.clone() };
 
@@ -32,18 +38,21 @@ impl<W: Write + Send + 'static> TuiEngine<W> {
         async move {
             let _guard = guard;
 
-            process()
+            process(&mut self.frame)
         }
     }
 }
 
 impl Default for TuiEngine<Stdout> {
     fn default() -> Self {
-        let config = TuiConfig::default().into();
+        let config = TuiConfig::default();
+        let base_pos = config.base_pos;
+        let config = config.into();
         let renderer = TerminalRenderer::new(io::stdout());
         let (runtime, tx) = RenderRuntime::new(config, renderer);
+        let frame = Frame::new(base_pos, tx.clone());
 
-        Self { runtime, tx }
+        Self { runtime, frame, tx }
     }
 }
 
@@ -83,5 +92,32 @@ struct ClosingGuard {
 impl Drop for ClosingGuard {
     fn drop(&mut self) {
         self.tx.send(RuntimeTask::Close).ok();
+    }
+}
+
+pub struct Frame {
+    window: Window,
+    tx: Sender<RuntimeTask>,
+}
+
+impl Frame {
+    fn new(base_pos: (u16, u16), tx: Sender<RuntimeTask>) -> Self {
+        Self {
+            window: Window::new(base_pos.0, base_pos.1),
+            tx,
+        }
+    }
+
+    fn create_vterm(&mut self) -> VTerm {
+        let new_window = Window::new(self.window.width(), self.window.height());
+        let ejected = mem::replace(&mut self.window, new_window);
+
+        ejected.into_vterm()
+    }
+
+    pub fn update_frame(&mut self) {
+        let vterm = self.create_vterm();
+
+        self.tx.send(RuntimeTask::UpdateBuffer(vterm)).ok();
     }
 }
