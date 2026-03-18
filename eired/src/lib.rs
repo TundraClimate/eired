@@ -158,6 +158,20 @@ impl Frame {
         self.height
     }
 
+    pub fn cursor_move_to(&mut self, at_x: u16, at_y: u16) -> Result<()> {
+        self.tx
+            .send(RuntimeTask::MoveCursor(at_x, at_y))
+            .map_err(Error::Send)
+    }
+
+    pub fn show_cursor(&mut self) -> Result<()> {
+        self.tx.send(RuntimeTask::ShowCursor).map_err(Error::Send)
+    }
+
+    pub fn hide_cursor(&mut self) -> Result<()> {
+        self.tx.send(RuntimeTask::HideCursor).map_err(Error::Send)
+    }
+
     pub fn overlap(&mut self, view: Annot<View>) {
         self.window.overlap(view);
     }

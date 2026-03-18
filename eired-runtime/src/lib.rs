@@ -119,7 +119,10 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
         let tick = self.config.ticker.clone();
 
         let mut running = true;
+        let mut cursor_vis = false;
         let mut buffer = None;
+        let mut cursor = Some(terminal::cursor_pos().unwrap_or((0, 0)));
+        let mut cursor_diff = None;
         let mut diff = None;
 
         while running {
@@ -129,6 +132,8 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                         recv(self.rx) -> task => {
                             let ctx = TaskContext {
                                 buffer: &mut buffer,
+                                cursor: &mut cursor,
+                                cursor_vis: &mut cursor_vis,
                                 running: &mut running,
                             };
 
@@ -136,8 +141,12 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                         }
 
                         recv(tick) -> _ => {
+                            if let Some(ref cursor) = cursor {
+                                cursor_diff = self.optimizer.create_cursor_diff(*cursor, cursor_vis);
+                            }
+
                             if let Some(ref buffer) = buffer {
-                                diff = self.optimizer.create_diff(buffer);
+                                diff = self.optimizer.create_diff(buffer, cursor_diff);
                             }
                         }
                     }
@@ -147,13 +156,19 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
 
                     let ctx = TaskContext {
                         buffer: &mut buffer,
+                        cursor: &mut cursor,
+                        cursor_vis: &mut cursor_vis,
                         running: &mut running,
                     };
 
                     RuntimeTask::eval(task, ctx);
 
+                    if let Some(ref cursor) = cursor {
+                        cursor_diff = self.optimizer.create_cursor_diff(*cursor, cursor_vis);
+                    }
+
                     if let Some(ref buffer) = buffer {
-                        diff = self.optimizer.create_diff(buffer);
+                        diff = self.optimizer.create_diff(buffer, cursor_diff);
                     }
                 }
             }
@@ -161,7 +176,8 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
             if let Some(diff) = diff.take() {
                 running = self.renderer.render(&self.config, diff).is_ok();
 
-                self.optimizer.replace_cache(buffer.take());
+                self.optimizer
+                    .replace_cache(buffer.take(), cursor_diff.take());
             }
         }
     }

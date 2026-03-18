@@ -1,9 +1,9 @@
 use std::io::{self, Write};
 use std::panic;
 
-use crossterm::cursor::{Hide, Show};
-use crossterm::execute;
+use crossterm::cursor::{self, Hide, MoveTo, Show};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::{execute, queue};
 
 use crate::config::RuntimeConfig;
 use crate::renderer::{Diff, Renderer};
@@ -25,11 +25,19 @@ fn disable_raw_mode() -> io::Result<()> {
 }
 
 fn show_cursor<W: Write>(w: &mut W) -> io::Result<()> {
-    execute!(w, Show)
+    queue!(w, Show)
 }
 
 fn hide_cursor<W: Write>(w: &mut W) -> io::Result<()> {
-    execute!(w, Hide)
+    queue!(w, Hide)
+}
+
+pub fn cursor_pos() -> io::Result<(u16, u16)> {
+    cursor::position()
+}
+
+pub fn cursor_move_to<W: Write>(w: &mut W, at_x: u16, at_y: u16) -> io::Result<()> {
+    queue!(w, MoveTo(at_x, at_y))
 }
 
 pub fn get_size() -> (u16, u16) {
@@ -48,10 +56,23 @@ impl<W: Write> TerminalRenderer<W> {
 
 impl<W: Write> Renderer<W> for TerminalRenderer<W> {
     fn render(&mut self, config: &RuntimeConfig, diff: Diff) -> io::Result<()> {
+        let cursor = diff.cursor();
         let cmds = eired_display::convert_to_draws(config.base_pos, diff.into_vec());
 
         for cmd in cmds {
             cmd.draw(&mut self.writer)?;
+        }
+
+        if let Some(cursor) = cursor {
+            if cursor.is_visible() {
+                let moveto = cursor.get_at();
+
+                cursor_move_to(&mut self.writer, moveto.0, moveto.1)?;
+
+                show_cursor(&mut self.writer)?;
+            } else {
+                hide_cursor(&mut self.writer)?;
+            }
         }
 
         self.writer.flush()

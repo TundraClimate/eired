@@ -8,22 +8,49 @@ use crate::config::RuntimeConfig;
 #[derive(Clone, Debug)]
 pub struct Diff {
     spans: Vec<Annot<Span>>,
+    cursor: Option<VisCursor>,
 }
 
 impl Diff {
-    pub fn new(spans: Vec<Annot<Span>>) -> Self {
-        Self { spans }
+    pub fn new(spans: Vec<Annot<Span>>, cursor: Option<VisCursor>) -> Self {
+        Self { spans, cursor }
     }
 
     pub fn into_vec(self) -> Vec<Annot<Span>> {
         self.spans
     }
+
+    pub fn cursor(&self) -> Option<VisCursor> {
+        self.cursor
+    }
 }
 
-impl TryFrom<&VTerm> for Diff {
+#[derive(Clone, Copy, Debug)]
+pub struct VisCursor {
+    cursor: (u16, u16),
+    cursor_vis: bool,
+}
+
+impl VisCursor {
+    fn new(cursor: (u16, u16), cursor_vis: bool) -> Self {
+        Self { cursor, cursor_vis }
+    }
+
+    pub fn get_at(&self) -> (u16, u16) {
+        self.cursor
+    }
+
+    pub fn is_visible(&self) -> bool {
+        self.cursor_vis
+    }
+}
+
+impl TryFrom<(&VTerm, Option<VisCursor>)> for Diff {
     type Error = &'static str;
 
-    fn try_from(value: &VTerm) -> Result<Self, Self::Error> {
+    fn try_from(value: (&VTerm, Option<VisCursor>)) -> Result<Self, Self::Error> {
+        let cursor = value.1;
+        let value = value.0;
         let cells = value.to_vec();
 
         if cells.is_empty() {
@@ -41,7 +68,7 @@ impl TryFrom<&VTerm> for Diff {
             .map(|(i, span)| span.annotate((0, i as u16)))
             .collect();
 
-        Ok(Self { spans })
+        Ok(Self { spans, cursor })
     }
 }
 
@@ -54,21 +81,44 @@ pub trait Renderer<W: Write> {
 }
 
 pub(crate) struct RenderOptimizer {
-    prev_cache: Option<VTerm>,
+    prev_cells: Option<VTerm>,
+    prev_cursor: Option<VisCursor>,
 }
 
 impl RenderOptimizer {
-    pub(crate) fn replace_cache(&mut self, new_cache: Option<VTerm>) {
-        self.prev_cache = new_cache;
+    pub(crate) fn replace_cache(
+        &mut self,
+        new_cells: Option<VTerm>,
+        new_cursor: Option<VisCursor>,
+    ) {
+        self.prev_cells = new_cells;
+        self.prev_cursor = new_cursor;
     }
 
-    pub(crate) fn create_diff(&self, new_term: &VTerm) -> Option<Diff> {
-        let Some(ref prev_cache) = self.prev_cache else {
-            return Diff::try_from(new_term).ok();
+    pub(crate) fn create_cursor_diff(
+        &self,
+        cursor: (u16, u16),
+        cursor_vis: bool,
+    ) -> Option<VisCursor> {
+        let Some(prev_cache) = self.prev_cursor else {
+            return Some(VisCursor::new(cursor, cursor_vis));
+        };
+
+        (prev_cache.cursor_vis != cursor_vis || prev_cache.cursor != cursor)
+            .then_some(VisCursor::new(cursor, cursor_vis))
+    }
+
+    pub(crate) fn create_diff(
+        &self,
+        new_term: &VTerm,
+        new_cursor: Option<VisCursor>,
+    ) -> Option<Diff> {
+        let Some(ref prev_cache) = self.prev_cells else {
+            return Diff::try_from((new_term, new_cursor)).ok();
         };
 
         if prev_cache.len() != new_term.len() {
-            return Diff::try_from(new_term).ok();
+            return Diff::try_from((new_term, new_cursor)).ok();
         }
 
         let cells = prev_cache.iter().zip(new_term.iter()).collect::<Vec<_>>();
@@ -99,12 +149,15 @@ impl RenderOptimizer {
             }
         }
 
-        (!spans.is_empty()).then_some(Diff::new(spans))
+        (!spans.is_empty()).then_some(Diff::new(spans, new_cursor))
     }
 }
 
 impl RenderOptimizer {
     pub(crate) fn new() -> Self {
-        Self { prev_cache: None }
+        Self {
+            prev_cells: None,
+            prev_cursor: None,
+        }
     }
 }

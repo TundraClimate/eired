@@ -10,6 +10,8 @@ fn main() {
         frame.overlap(View::new(3, 3, Span::from("AAABBBCCC").to_vec()).annotate((1, 1)));
 
         frame.update_frame()?;
+        frame.show_cursor()?;
+        frame.cursor_move_to(4, 3)?;
 
         std::thread::sleep(std::time::Duration::from_secs(5));
 
