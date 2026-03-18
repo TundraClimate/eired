@@ -110,27 +110,52 @@ impl From<TuiConfig> for RuntimeConfig {
 
 pub struct Frame {
     window: Window,
-    size: Arc<dyn Fn() -> (u16, u16)>,
+    size_fn: Arc<dyn Fn() -> (u16, u16)>,
     tx: Sender<RuntimeTask>,
+    width: u16,
+    height: u16,
 }
 
 impl Frame {
     fn new(size: Arc<dyn Fn() -> (u16, u16)>, tx: Sender<RuntimeTask>) -> Self {
         let terminal_size = size();
+        let width = terminal_size.0;
+        let height = terminal_size.1;
 
         Self {
-            window: Window::new(terminal_size.0, terminal_size.1),
-            size,
+            window: Window::new(width, height),
+            size_fn: size,
             tx,
+            width,
+            height,
         }
     }
 
     fn create_vterm(&mut self) -> VTerm {
-        let terminal_size = (self.size)();
-        let new_window = Window::new(terminal_size.0, terminal_size.1);
+        self.on_resize();
+
+        let new_window = Window::new(self.width, self.height);
         let ejected = mem::replace(&mut self.window, new_window);
 
         ejected.into_vterm()
+    }
+
+    pub fn on_resize(&mut self) {
+        let terminal_size = (self.size_fn)();
+
+        if (self.width, self.height) != terminal_size {
+            self.width = terminal_size.0;
+            self.height = terminal_size.1;
+            self.window.resize(self.width, self.height);
+        }
+    }
+
+    pub fn width(&self) -> u16 {
+        self.width
+    }
+
+    pub fn height(&self) -> u16 {
+        self.height
     }
 
     pub fn overlap(&mut self, view: Annot<View>) {
