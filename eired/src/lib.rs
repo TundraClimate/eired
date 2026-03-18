@@ -114,6 +114,8 @@ pub struct Frame {
     tx: Sender<RuntimeTask>,
     width: u16,
     height: u16,
+    cursor: Option<(u16, u16)>,
+    cursor_vis: Option<bool>,
 }
 
 impl Frame {
@@ -128,6 +130,8 @@ impl Frame {
             tx,
             width,
             height,
+            cursor: None,
+            cursor_vis: None,
         }
     }
 
@@ -158,18 +162,16 @@ impl Frame {
         self.height
     }
 
-    pub fn cursor_move_to(&mut self, at_x: u16, at_y: u16) -> Result<()> {
-        self.tx
-            .send(RuntimeTask::MoveCursor(at_x, at_y))
-            .map_err(Error::Send)
+    pub fn cursor_move_to(&mut self, at_x: u16, at_y: u16) {
+        self.cursor = Some((at_x, at_y));
     }
 
-    pub fn show_cursor(&mut self) -> Result<()> {
-        self.tx.send(RuntimeTask::ShowCursor).map_err(Error::Send)
+    pub fn show_cursor(&mut self) {
+        self.cursor_vis = Some(true);
     }
 
-    pub fn hide_cursor(&mut self) -> Result<()> {
-        self.tx.send(RuntimeTask::HideCursor).map_err(Error::Send)
+    pub fn hide_cursor(&mut self) {
+        self.cursor_vis = Some(false);
     }
 
     pub fn overlap(&mut self, view: Annot<View>) {
@@ -178,6 +180,23 @@ impl Frame {
 
     pub fn update_frame(&mut self) -> Result<()> {
         let vterm = self.create_vterm();
+
+        if let Some(vis) = self.cursor_vis.take() {
+            if vis {
+                self.tx.send(RuntimeTask::ShowCursor).map_err(Error::Send)?;
+
+                if let Some(cursor) = self.cursor.take() {
+                    self.tx
+                        .send(RuntimeTask::MoveCursor(cursor.0, cursor.1))
+                        .map_err(Error::Send)?;
+                }
+            } else {
+                self.tx.send(RuntimeTask::HideCursor).map_err(Error::Send)?;
+                self.tx
+                    .send(RuntimeTask::MoveCursor(0, 0))
+                    .map_err(Error::Send)?;
+            }
+        }
 
         self.tx
             .send(RuntimeTask::UpdateBuffer(vterm))

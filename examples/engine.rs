@@ -9,11 +9,20 @@ fn main() {
     engine.run(|frame| {
         frame.overlap(View::new(3, 3, Span::from("AAABBBCCC").to_vec()).annotate((1, 1)));
 
-        frame.update_frame()?;
-        frame.show_cursor()?;
-        frame.cursor_move_to(4, 3)?;
+        frame.show_cursor();
+        frame.cursor_move_to(4, 3);
 
-        std::thread::sleep(std::time::Duration::from_secs(5));
+        frame.update_frame()?;
+
+        std::thread::sleep(std::time::Duration::from_secs(3));
+
+        frame.overlap(View::new(3, 3, Span::from("AAABBBCCC").to_vec()).annotate((1, 1)));
+
+        frame.hide_cursor();
+
+        frame.update_frame()?;
+
+        std::thread::sleep(std::time::Duration::from_secs(2));
 
         Ok(())
     });

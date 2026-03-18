@@ -149,7 +149,7 @@ impl RenderOptimizer {
             }
         }
 
-        (!spans.is_empty()).then_some(Diff::new(spans, new_cursor))
+        (!spans.is_empty() || new_cursor.is_some()).then_some(Diff::new(spans, new_cursor))
     }
 }
 
