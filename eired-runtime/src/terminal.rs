@@ -23,6 +23,10 @@ fn disable_raw_mode() -> io::Result<()> {
     terminal::disable_raw_mode()
 }
 
+pub fn get_size() -> (u16, u16) {
+    terminal::size().unwrap_or((0, 0))
+}
+
 pub struct TerminalRenderer<W: Write> {
     writer: W,
 }

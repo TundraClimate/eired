@@ -2,14 +2,15 @@
 
 use std::io::{self, Stdout, Write};
 use std::mem;
+use std::sync::Arc;
 
 use crossbeam::channel::{SendError, Sender};
 
-use eired_display::{Annot, Annotate, VTerm, View, Window};
+use eired_display::{Annot, VTerm, View, Window};
 use eired_runtime::RenderRuntime;
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;
-use eired_runtime::terminal::TerminalRenderer;
+use eired_runtime::terminal::{self, TerminalRenderer};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -66,11 +67,11 @@ impl<W: Write + Send + 'static> TuiEngine<W> {
 impl Default for TuiEngine<Stdout> {
     fn default() -> Self {
         let config = TuiConfig::default();
-        let base_pos = config.base_pos;
+        let size = config.size.clone();
         let config = config.into();
         let renderer = TerminalRenderer::new(io::stdout());
         let (runtime, tx) = RenderRuntime::new(config, renderer);
-        let frame = Frame::new(base_pos, tx.clone());
+        let frame = Frame::new(size, tx.clone());
 
         Self { runtime, frame, tx }
     }
@@ -81,6 +82,7 @@ pub struct TuiConfig {
     alternate_screen: bool,
     fps: u16,
     base_pos: (u16, u16),
+    size: Arc<dyn Fn() -> (u16, u16)>,
 }
 
 impl Default for TuiConfig {
@@ -90,6 +92,7 @@ impl Default for TuiConfig {
             alternate_screen: true,
             fps: 30,
             base_pos: (0, 0),
+            size: Arc::new(terminal::get_size),
         }
     }
 }
@@ -107,19 +110,24 @@ impl From<TuiConfig> for RuntimeConfig {
 
 pub struct Frame {
     window: Window,
+    size: Arc<dyn Fn() -> (u16, u16)>,
     tx: Sender<RuntimeTask>,
 }
 
 impl Frame {
-    fn new(base_pos: (u16, u16), tx: Sender<RuntimeTask>) -> Self {
+    fn new(size: Arc<dyn Fn() -> (u16, u16)>, tx: Sender<RuntimeTask>) -> Self {
+        let terminal_size = size();
+
         Self {
-            window: Window::new(base_pos.0, base_pos.1),
+            window: Window::new(terminal_size.0, terminal_size.1),
+            size,
             tx,
         }
     }
 
     fn create_vterm(&mut self) -> VTerm {
-        let new_window = Window::new(self.window.width(), self.window.height());
+        let terminal_size = (self.size)();
+        let new_window = Window::new(terminal_size.0, terminal_size.1);
         let ejected = mem::replace(&mut self.window, new_window);
 
         ejected.into_vterm()

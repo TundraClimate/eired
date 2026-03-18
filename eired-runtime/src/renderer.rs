@@ -1,11 +1,11 @@
 use std::io::{self, Write};
 use std::mem;
 
-use eired_display::{Annot, Annotate, Cell, Span, VTerm};
+use eired_display::{Annot, Annotate, Span, VTerm};
 
 use crate::config::RuntimeConfig;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Diff {
     spans: Vec<Annot<Span>>,
 }
@@ -20,18 +20,28 @@ impl Diff {
     }
 }
 
-impl From<&VTerm> for Diff {
-    fn from(value: &VTerm) -> Self {
-        let cells: Vec<Cell> = value.to_vec();
+impl TryFrom<&VTerm> for Diff {
+    type Error = &'static str;
+
+    fn try_from(value: &VTerm) -> Result<Self, Self::Error> {
+        let cells = value.to_vec();
+
+        if cells.is_empty() {
+            return Err("value size is zero");
+        }
+
+        if cells.len() != (value.width() * value.height()).into() {
+            return Err("value size is incorrect");
+        }
 
         let spans = cells
             .chunks(value.width().into())
             .map(|cs| Span::from_iter(cs.iter().copied()))
             .enumerate()
-            .map(|(i, span)| span.annotate((i as u16, 0)))
+            .map(|(i, span)| span.annotate((0, i as u16)))
             .collect();
 
-        Self { spans }
+        Ok(Self { spans })
     }
 }
 
@@ -54,11 +64,11 @@ impl RenderOptimizer {
 
     pub(crate) fn create_diff(&self, new_term: &VTerm) -> Option<Diff> {
         let Some(ref prev_cache) = self.prev_cache else {
-            return Some(Diff::from(new_term));
+            return Diff::try_from(new_term).ok();
         };
 
         if prev_cache.len() != new_term.len() {
-            return Some(Diff::from(new_term));
+            return Diff::try_from(new_term).ok();
         }
 
         let cells = prev_cache.iter().zip(new_term.iter()).collect::<Vec<_>>();

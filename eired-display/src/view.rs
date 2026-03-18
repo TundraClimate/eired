@@ -78,7 +78,15 @@ impl View {
     ///
     /// assert_eq!(min.iter().next(), Some(&Cell::new('!')));
     /// ```
-    pub fn new(width: u16, height: u16, cells: Vec<Cell>) -> Self {
+    pub fn new<T: IntoIterator<Item = Cell>>(width: u16, height: u16, cells: T) -> Self {
+        let mut cells = cells.into_iter().collect::<Vec<_>>();
+
+        if cells.len() > (width * height) as usize {
+            cells.truncate((width * height) as usize);
+        } else {
+            cells.resize((width * height) as usize, Cell::default());
+        }
+
         Self {
             width,
             height,
