@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 use std::panic;
 
+use crossterm::cursor::{Hide, Show};
 use crossterm::execute;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 
@@ -21,6 +22,14 @@ fn enable_raw_mode() -> io::Result<()> {
 
 fn disable_raw_mode() -> io::Result<()> {
     terminal::disable_raw_mode()
+}
+
+fn show_cursor<W: Write>(w: &mut W) -> io::Result<()> {
+    execute!(w, Show)
+}
+
+fn hide_cursor<W: Write>(w: &mut W) -> io::Result<()> {
+    execute!(w, Hide)
 }
 
 pub fn get_size() -> (u16, u16) {
