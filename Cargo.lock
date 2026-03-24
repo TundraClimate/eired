@@ -177,6 +177,7 @@ name = "examples"
 version = "0.1.0"
 dependencies = [
  "crossbeam",
+ "crossterm",
  "eired",
  "eired-display",
  "eired-runtime",

@@ -98,6 +98,36 @@ impl Span {
         span
     }
 
+    /// Create new colored span.
+    ///
+    /// # Note
+    ///
+    /// `color` is the [`crossterm::style::Color`](https://docs.rs/crossterm/latest/crossterm/style/enum.Color.html).  
+    /// This may change in the future.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eired_display::Span;
+    /// use eired_display::Cell;
+    /// use crossterm::style::Color;
+    ///
+    /// let span = Span::new_with_color("Red Blue", Color::Red, Color::Blue);
+    ///
+    /// assert_eq!(span.get(0), Some(&Cell::new_colored('R', Color::Red, Color::Blue)));
+    /// assert_eq!(span.get(7), Some(&Cell::new_colored('e', Color::Red, Color::Blue)));
+    /// ```
+    pub fn new_with_color<S: AsRef<str>>(cells: S, fg: Color, bg: Color) -> Self {
+        let mut span = Span::from(cells.as_ref());
+
+        span.cells.iter_mut().for_each(|cell| {
+            cell.fg = fg;
+            cell.bg = bg
+        });
+
+        span
+    }
+
     /// Get 1 cell ref by `idx`.
     ///
     /// # Examples

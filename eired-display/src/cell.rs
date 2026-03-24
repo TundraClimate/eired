@@ -103,6 +103,22 @@ impl Cell {
             ..Self::default()
         }
     }
+
+    /// Create new styled cell.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use eired_display::Cell;
+    /// use crossterm::style::Color;
+    ///
+    /// let cell = Cell::new_colored('B', Color::Red, Color::Blue);
+    ///
+    /// assert_eq!(cell, Cell { ch: 'B', fg: Color::Red, bg: Color::Blue });
+    /// ```
+    pub fn new_colored(ch: char, fg: Color, bg: Color) -> Self {
+        Self { ch, fg, bg }
+    }
 }
 
 impl From<char> for Cell {
