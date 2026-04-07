@@ -107,6 +107,30 @@ impl Annotate for Rect {
     }
 }
 
+pub struct Point(u16, u16);
+
+impl Point {
+    pub fn cols(&self) -> u16 {
+        self.0
+    }
+
+    pub fn rows(&self) -> u16 {
+        self.1
+    }
+}
+
+impl Debug for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.cols(), self.rows())
+    }
+}
+
+impl From<(u16, u16)> for Point {
+    fn from(value: (u16, u16)) -> Self {
+        Self(value.0, value.1)
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Cell {
     ch: char,
