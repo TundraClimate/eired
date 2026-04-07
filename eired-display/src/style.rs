@@ -1,4 +1,47 @@
+use std::fmt::{Debug, Display};
 use std::mem;
+
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
+pub struct Style {
+    fg: Option<Color>,
+    bg: Option<Color>,
+}
+
+impl Debug for Style {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fg = if let Some(fg) = self.fg {
+            format!("\\x1b[38;5;{}m", fg.0)
+        } else {
+            "\\x1b[39m".to_string()
+        };
+
+        let bg = if let Some(bg) = self.bg {
+            format!("\\x1b[48;5;{}m", bg.0)
+        } else {
+            "\\x1b[49m".to_string()
+        };
+
+        write!(f, "{}{}", fg, bg)
+    }
+}
+
+impl Display for Style {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fg = if let Some(fg) = self.fg {
+            format!("\x1b[38;5;{}m", fg.0)
+        } else {
+            "\x1b[39m".to_string()
+        };
+
+        let bg = if let Some(bg) = self.bg {
+            format!("\x1b[48;5;{}m", bg.0)
+        } else {
+            "\x1b[49m".to_string()
+        };
+
+        write!(f, "{}{}", fg, bg)
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Color(u8);
@@ -6,6 +49,10 @@ pub struct Color(u8);
 impl Color {
     pub fn new(ansi: AnsiColor) -> Self {
         Self(ansi.into())
+    }
+
+    pub fn rgb(r: u8, g: u8, b: u8) -> Self {
+        Self::new(AnsiColor::rgb(r, g, b))
     }
 }
 
