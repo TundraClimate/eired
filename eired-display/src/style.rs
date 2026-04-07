@@ -75,8 +75,8 @@ pub enum AnsiColor {
     Magenta = 13,
     Cyan = 14,
     White = 15,
-    ColorCube(U6, U6, U6) = 16,
-    Grayscale(U24) = 17,
+    ColorCube(u8, u8, u8) = 16,
+    Grayscale(u8) = 17,
 }
 
 impl AnsiColor {
@@ -125,60 +125,28 @@ impl AnsiColor {
     }
 
     pub fn colorcube(r: u8, g: u8, b: u8) -> Option<Self> {
-        Some(Self::ColorCube(U6::new(r)?, U6::new(g)?, U6::new(b)?))
+        (r < 6 && g < 6 && b < 6).then_some(Self::ColorCube(r, g, b))
     }
 
     pub fn colorcube_unchecked(r: u8, g: u8, b: u8) -> Self {
-        Self::ColorCube(
-            U6::new_unchecked(r),
-            U6::new_unchecked(g),
-            U6::new_unchecked(b),
-        )
+        Self::ColorCube(r, g, b)
     }
 
     pub fn grayscale(scale: u8) -> Option<Self> {
-        Some(Self::Grayscale(U24::new(scale)?))
+        (scale < 24).then_some(Self::Grayscale(scale))
     }
 
     pub fn grayscale_unchecked(scale: u8) -> Self {
-        Self::Grayscale(U24::new_unchecked(scale))
+        Self::Grayscale(scale)
     }
 }
 
 impl From<AnsiColor> for u8 {
     fn from(value: AnsiColor) -> Self {
         match value {
-            AnsiColor::ColorCube(r, g, b) => 16 + 36 * r.0 + 6 * g.0 + b.0,
-            AnsiColor::Grayscale(scale) => 232 + scale.0,
+            AnsiColor::ColorCube(r, g, b) => 16 + 36 * r + 6 * g + b,
+            AnsiColor::Grayscale(scale) => 232 + scale,
             _ => (unsafe { mem::transmute::<AnsiColor, u32>(value) }) as u8,
         }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct U6(u8);
-
-impl U6 {
-    pub const fn new(v: u8) -> Option<Self> {
-        if v < 6 { Some(Self(v)) } else { None }
-    }
-
-    pub const fn new_unchecked(v: u8) -> Self {
-        assert!(v < 6);
-        Self(v)
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct U24(u8);
-
-impl U24 {
-    pub const fn new(v: u8) -> Option<Self> {
-        if v < 24 { Some(Self(v)) } else { None }
-    }
-
-    pub const fn new_unchecked(v: u8) -> Self {
-        assert!(v < 24);
-        Self(v)
     }
 }
