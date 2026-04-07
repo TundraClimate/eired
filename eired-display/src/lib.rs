@@ -34,6 +34,7 @@ mod cell;
 mod draw;
 mod layer;
 mod span;
+mod style;
 mod view;
 mod window;
 
