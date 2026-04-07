@@ -2,6 +2,7 @@
 
 use std::io::{self, Stdout, Write};
 use std::mem;
+use std::process;
 use std::sync::Arc;
 
 use crossbeam::channel::{SendError, Sender};
@@ -19,8 +20,11 @@ pub enum Error {
     Send(SendError<RuntimeTask>),
 }
 
-fn handle_err(_err: Error) {
-    todo!()
+fn handle_err(err: Error) {
+    match err {
+        Error::Io(_) => process::exit(5),
+        Error::Send(_) => process::exit(1),
+    }
 }
 
 pub struct TuiEngine<W: Write> {
