@@ -7,6 +7,28 @@ pub struct Style {
     bg: Option<Color>,
 }
 
+impl Style {
+    pub fn with_fg<C: Into<Color>>(color: C) -> Self {
+        Self::default().fg(color)
+    }
+
+    pub fn with_bg<C: Into<Color>>(color: C) -> Self {
+        Self::default().bg(color)
+    }
+
+    pub fn fg<C: Into<Color>>(mut self, color: C) -> Self {
+        self.fg = Some(color.into());
+
+        self
+    }
+
+    pub fn bg<C: Into<Color>>(mut self, color: C) -> Self {
+        self.bg = Some(color.into());
+
+        self
+    }
+}
+
 impl Debug for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fg = if let Some(fg) = self.fg {
@@ -53,6 +75,12 @@ impl Color {
 
     pub fn rgb(r: u8, g: u8, b: u8) -> Self {
         Self::new(AnsiColor::rgb(r, g, b))
+    }
+}
+
+impl From<AnsiColor> for Color {
+    fn from(value: AnsiColor) -> Self {
+        Self(value.into())
     }
 }
 
