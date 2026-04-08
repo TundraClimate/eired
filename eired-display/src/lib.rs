@@ -31,7 +31,7 @@
 /* mod annot; */
 mod canvas;
 /* mod cell; */
-mod draw;
+/* mod draw; */
 mod layer;
 /* mod span; */
 mod style;
@@ -39,11 +39,12 @@ mod view;
 mod window;
 
 use std::fmt::{Debug, Display};
+use std::io;
 
 /* pub use annot::{Annot, Annotate}; */
 pub use canvas::Canvas;
 /* pub use cell::Cell; */
-pub use draw::{DrawableSpan, convert_to_draws};
+/* pub use draw::{DrawableSpan, convert_to_draws}; */
 pub use layer::Layer;
 /* pub use span::Span; */
 pub use style::{AnsiColor, Color, Style};
@@ -403,5 +404,33 @@ impl From<Span> for Vec<Cell> {
 impl Annotate for Span {
     fn get_size(&self) -> (u16, u16) {
         (self.len(), 1)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct VisualSpan<'a> {
+    moveto: Point,
+    span: &'a [Cell],
+}
+
+impl<'a> VisualSpan<'a> {
+    pub fn new<P: Into<Point>>(moveto: P, span: &'a [Cell]) -> VisualSpan<'a> {
+        Self {
+            moveto: moveto.into(),
+            span,
+        }
+    }
+}
+
+impl VisualSpan<'_> {
+    pub fn draw<W: io::Write>(&self, w: &mut W) -> io::Result<()> {
+        let fmt = format!(
+            "\x1b[{};{}H{}",
+            self.moveto.rows(),
+            self.moveto.cols(),
+            Span::from_iter(self.span.to_vec())
+        );
+
+        w.write(fmt.as_bytes()).map(|_| ())
     }
 }
