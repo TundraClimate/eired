@@ -7,11 +7,11 @@ use std::sync::Arc;
 
 use crossbeam::channel::{SendError, Sender};
 
-use eired_display::Annot;
-use eired_runtime::RenderRuntime;
+use eired_display::{Annot, Annotate, Cell};
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;
 use eired_runtime::terminal::{self, TerminalRenderer};
+use eired_runtime::{Canvas, RenderRuntime};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -113,7 +113,7 @@ impl From<TuiConfig> for RuntimeConfig {
 }
 
 pub struct Frame {
-    window: Window,
+    canvas: Canvas,
     size_fn: Arc<dyn Fn() -> (u16, u16)>,
     tx: Sender<RuntimeTask>,
     width: u16,
@@ -129,7 +129,7 @@ impl Frame {
         let height = terminal_size.1;
 
         Self {
-            window: Window::new(width, height),
+            canvas: Canvas::new(width, height),
             size_fn: size,
             tx,
             width,
@@ -139,13 +139,12 @@ impl Frame {
         }
     }
 
-    fn create_vterm(&mut self) -> VTerm {
+    fn take_canvas(&mut self) -> Canvas {
         self.on_resize();
 
-        let new_window = Window::new(self.width, self.height);
-        let ejected = mem::replace(&mut self.window, new_window);
+        let new_canvas = Canvas::new(self.width, self.height);
 
-        ejected.into_vterm()
+        mem::replace(&mut self.canvas, new_canvas)
     }
 
     pub fn on_resize(&mut self) {
@@ -154,7 +153,7 @@ impl Frame {
         if (self.width, self.height) != terminal_size {
             self.width = terminal_size.0;
             self.height = terminal_size.1;
-            self.window.resize(self.width, self.height);
+            self.canvas = Canvas::new(self.width, self.height);
         }
     }
 
@@ -178,12 +177,12 @@ impl Frame {
         self.cursor_vis = Some(false);
     }
 
-    pub fn overlap(&mut self, view: Annot<View>) {
-        self.window.overlap(view);
+    pub fn overlap<T: Annotate + Into<Vec<Cell>>>(&mut self, cells: Annot<T>) {
+        self.canvas.draw(cells);
     }
 
     pub fn update_frame(&mut self) -> Result<()> {
-        let vterm = self.create_vterm();
+        let canvas = self.take_canvas();
 
         if let Some(vis) = self.cursor_vis.take() {
             if vis {
@@ -203,7 +202,7 @@ impl Frame {
         }
 
         self.tx
-            .send(RuntimeTask::UpdateBuffer(vterm))
+            .send(RuntimeTask::UpdateBuffer(canvas))
             .map_err(Error::Send)
     }
 }

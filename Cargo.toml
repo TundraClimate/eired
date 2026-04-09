@@ -5,7 +5,7 @@ members = [
     "eired",
 
     "tests",
-    "examples"
+#    "examples"
 ]
 
 resolver = "3"
