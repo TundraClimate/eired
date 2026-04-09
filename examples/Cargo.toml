@@ -15,7 +15,3 @@ crossterm.workspace = true
 [[example]]
 name = "engine"
 path = "engine.rs"
-
-[[example]]
-name = "fill"
-path = "fill.rs"
