@@ -1,5 +1,7 @@
 use crossbeam::channel::{RecvError, Sender};
 
+use eired_display::Point;
+
 use crate::Canvas;
 
 pub enum RuntimeTask {
@@ -7,7 +9,7 @@ pub enum RuntimeTask {
     ClearBuffer,
     ShowCursor,
     HideCursor,
-    MoveCursor(u16, u16),
+    MoveCursor(Point),
     Sync(Sender<()>),
     Close,
 }
@@ -27,8 +29,8 @@ impl RuntimeTask {
             Ok(RuntimeTask::HideCursor) => {
                 *ctx.cursor_vis = false;
             }
-            Ok(RuntimeTask::MoveCursor(x, y)) => {
-                *ctx.cursor = Some((x, y));
+            Ok(RuntimeTask::MoveCursor(at)) => {
+                *ctx.cursor = Some(at);
             }
             Ok(RuntimeTask::Sync(tx)) => {
                 tx.send(()).ok();
@@ -42,7 +44,7 @@ impl RuntimeTask {
 
 pub(crate) struct TaskContext<'a> {
     pub(crate) buffer: &'a mut Option<Canvas>,
-    pub(crate) cursor: &'a mut Option<(u16, u16)>,
+    pub(crate) cursor: &'a mut Option<Point>,
     pub(crate) cursor_vis: &'a mut bool,
     pub(crate) running: &'a mut bool,
 }

@@ -52,7 +52,7 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
         let mut running = true;
         let mut cursor_vis = false;
         let mut buffer = None;
-        let mut cursor = Some(terminal::cursor_pos().unwrap_or((0, 0)));
+        let mut cursor = Some(terminal::cursor_pos().unwrap_or_default());
         let mut cursor_diff = None;
         let mut diff = None;
 

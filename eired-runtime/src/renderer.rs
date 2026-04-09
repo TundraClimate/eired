@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use eired_display::VisualSpan;
+use eired_display::{Point, VisualSpan};
 
 use crate::Canvas;
 use crate::config::RuntimeConfig;
@@ -31,11 +31,7 @@ impl RenderOptimizer {
         self.prev_cursor = new_cursor;
     }
 
-    pub(crate) fn create_cursor_diff(
-        &self,
-        cursor: (u16, u16),
-        cursor_vis: bool,
-    ) -> Option<VisCursor> {
+    pub(crate) fn create_cursor_diff(&self, cursor: Point, cursor_vis: bool) -> Option<VisCursor> {
         let Some(ref prev_cache) = self.prev_cursor else {
             return Some(VisCursor { cursor, cursor_vis });
         };
@@ -109,9 +105,9 @@ impl Diff {
         Self { ranges, cursor }
     }
 
-    pub fn draws<'a>(self, base: (u16, u16), buffer: &'a Canvas) -> Vec<VisualSpan<'a>> {
-        let base_cols = base.0;
-        let base_rows = base.1;
+    pub fn draws<'a>(self, base: Point, buffer: &'a Canvas) -> Vec<VisualSpan<'a>> {
+        let base_cols = base.cols();
+        let base_rows = base.rows();
 
         self.ranges
             .into_iter()
@@ -129,5 +125,5 @@ impl Diff {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct VisCursor {
     pub(crate) cursor_vis: bool,
-    pub(crate) cursor: (u16, u16),
+    pub(crate) cursor: Point,
 }

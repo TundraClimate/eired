@@ -11,7 +11,7 @@ fn main() {
         frame.draw(Span::from("CCC").annotate((1, 3)));
 
         frame.show_cursor();
-        frame.cursor_move_to(4, 3);
+        frame.cursor_move_to((4, 3));
 
         frame.update_frame()?;
 

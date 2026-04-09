@@ -5,6 +5,8 @@ use crossterm::cursor::{self, Hide, MoveTo, Show};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{execute, queue};
 
+use eired_display::Point;
+
 use crate::Canvas;
 use crate::config::RuntimeConfig;
 use crate::renderer::{Diff, Renderer};
@@ -33,12 +35,12 @@ fn hide_cursor<W: Write>(w: &mut W) -> io::Result<()> {
     queue!(w, Hide)
 }
 
-pub fn cursor_pos() -> io::Result<(u16, u16)> {
-    cursor::position()
+pub fn cursor_pos() -> io::Result<Point> {
+    cursor::position().map(Point::from)
 }
 
-pub fn cursor_move_to<W: Write>(w: &mut W, at_x: u16, at_y: u16) -> io::Result<()> {
-    queue!(w, MoveTo(at_x, at_y))
+pub fn cursor_move_to<W: Write>(w: &mut W, at: Point) -> io::Result<()> {
+    queue!(w, MoveTo(at.cols(), at.rows()))
 }
 
 pub fn get_size() -> (u16, u16) {
@@ -68,7 +70,7 @@ impl<W: Write> Renderer<W> for TerminalRenderer<W> {
             if cursor.cursor_vis {
                 let moveto = cursor.cursor;
 
-                cursor_move_to(&mut self.writer, moveto.0, moveto.1)?;
+                cursor_move_to(&mut self.writer, moveto)?;
 
                 show_cursor(&mut self.writer)?;
             } else {

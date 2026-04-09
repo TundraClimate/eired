@@ -34,7 +34,7 @@ impl Annotate for Rect {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Point(u16, u16);
 
 impl Point {

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crossbeam::channel::{SendError, Sender};
 
-use eired_display::{Annot, Annotate, Cell};
+use eired_display::{Annot, Annotate, Cell, Point};
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;
 use eired_runtime::terminal::{self, TerminalRenderer};
@@ -85,7 +85,7 @@ pub struct TuiConfig {
     raw_mode: bool,
     alternate_screen: bool,
     fps: u16,
-    base_pos: (u16, u16),
+    base_pos: Point,
     size: Arc<dyn Fn() -> (u16, u16)>,
 }
 
@@ -95,7 +95,7 @@ impl Default for TuiConfig {
             raw_mode: true,
             alternate_screen: true,
             fps: 30,
-            base_pos: (0, 0),
+            base_pos: (0, 0).into(),
             size: Arc::new(terminal::get_size),
         }
     }
@@ -118,7 +118,7 @@ pub struct Frame {
     tx: Sender<RuntimeTask>,
     width: u16,
     height: u16,
-    cursor: Option<(u16, u16)>,
+    cursor: Option<Point>,
     cursor_vis: Option<bool>,
 }
 
@@ -165,8 +165,8 @@ impl Frame {
         self.height
     }
 
-    pub fn cursor_move_to(&mut self, at_x: u16, at_y: u16) {
-        self.cursor = Some((at_x, at_y));
+    pub fn cursor_move_to<P: Into<Point>>(&mut self, at: P) {
+        self.cursor = Some(at.into());
     }
 
     pub fn show_cursor(&mut self) {
@@ -190,13 +190,13 @@ impl Frame {
 
                 if let Some(cursor) = self.cursor.take() {
                     self.tx
-                        .send(RuntimeTask::MoveCursor(cursor.0, cursor.1))
+                        .send(RuntimeTask::MoveCursor(cursor))
                         .map_err(Error::Send)?;
                 }
             } else {
                 self.tx.send(RuntimeTask::HideCursor).map_err(Error::Send)?;
                 self.tx
-                    .send(RuntimeTask::MoveCursor(0, 0))
+                    .send(RuntimeTask::MoveCursor(Point::default()))
                     .map_err(Error::Send)?;
             }
         }

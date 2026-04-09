@@ -2,17 +2,19 @@ use std::time::{Duration, Instant};
 
 use crossbeam::channel::{self, Receiver};
 
+use eired_display::Point;
+
 #[derive(Default)]
 pub struct ConfigBuilder {
-    base_pos: (u16, u16),
+    base_pos: Point,
     alternate_screen: bool,
     raw_mode: bool,
     receiver: Option<Receiver<Instant>>,
 }
 
 impl ConfigBuilder {
-    pub fn base_pos(mut self, base_pos: (u16, u16)) -> Self {
-        self.base_pos = base_pos;
+    pub fn base_pos<P: Into<Point>>(mut self, base_pos: P) -> Self {
+        self.base_pos = base_pos.into();
 
         self
     }
@@ -60,7 +62,7 @@ impl ConfigBuilder {
 #[derive(Clone)]
 pub struct RuntimeConfig {
     pub(crate) ticker: Option<Receiver<Instant>>,
-    pub(crate) base_pos: (u16, u16),
+    pub(crate) base_pos: Point,
     pub(crate) alternate_screen: bool,
     pub(crate) raw_mode: bool,
 }
