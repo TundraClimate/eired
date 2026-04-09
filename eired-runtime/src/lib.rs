@@ -17,40 +17,6 @@ use task::{RuntimeTask, TaskContext};
 
 use eired_display::{Annot, Annotate, Cell, Rect, Span};
 
-/// A runtime of renderer the standalone rendering thread.
-///
-/// The [`new`](Self::new) function returns `(Self, Sender<RuntimeTask>)`.
-/// [`Sender`] receives the [`RuntimeTask`], it's includes the `UpdateBuffer` and etc.
-///
-/// An optimizer as a difference extractor analyze received buffer the
-/// [`VTerm`](eired_display::VTerm).
-/// The useless rendering process will suppressing for optimize.
-///
-/// # Examples
-///
-/// - The [`run`](Self::run) function is start runtime on that thread.
-/// - The [`spawn`](Self::spawn) function is start runtime with new thread.
-///
-/// ```no_run
-/// use eired_runtime::RenderRuntime;
-/// use eired_runtime::terminal::TerminalRenderer;
-/// use eired_runtime::config::ConfigBuilder;
-/// use eired_runtime::task::RuntimeTask;
-///
-/// let renderer = TerminalRenderer::new(std::io::stdout());
-/// let config = ConfigBuilder::default().raw_mode(true).alternate_screen(true).fps(60).build();
-/// let (runtime, tx) = RenderRuntime::new(config, renderer);
-///
-/// let handle = runtime.spawn();
-///
-/// # /*
-/// tx.send(RuntimeTask::UpdateBuffer(/* Buffer */)).ok();
-/// # */
-/// tx.send(RuntimeTask::ClearBuffer).ok();
-/// tx.send(RuntimeTask::Close).ok();
-///
-/// handle.join().ok();
-/// ```
 pub struct RenderRuntime<W: Write, R: Renderer<W>> {
     out: PhantomData<W>,
     config: RuntimeConfig,
@@ -60,23 +26,6 @@ pub struct RenderRuntime<W: Write, R: Renderer<W>> {
 }
 
 impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
-    /// Create a new runtime.
-    ///
-    /// This function returns `(Self, Sender<RuntimeTask>)`.
-    /// [`Sender`] receives the [`RuntimeTask`], it's includes the `UpdateBuffer` and etc.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use eired_runtime::RenderRuntime;
-    /// use eired_runtime::terminal::TerminalRenderer;
-    /// use eired_runtime::config::ConfigBuilder;
-    ///
-    /// let renderer = TerminalRenderer::new(std::io::stdout());
-    /// let config = ConfigBuilder::default().build();
-    ///
-    /// let (runtime, tx) = RenderRuntime::new(config, renderer);
-    /// ```
     pub fn new(config: RuntimeConfig, renderer: R) -> (Self, Sender<RuntimeTask>) {
         let (tx, rx) = channel::bounded(1024);
 
@@ -91,26 +40,6 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
         (rt, tx)
     }
 
-    /// Runs runtime on that thread.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use eired_runtime::RenderRuntime;
-    /// # use eired_runtime::terminal::TerminalRenderer;
-    /// # use eired_runtime::config::ConfigBuilder;
-    /// # use eired_runtime::task::RuntimeTask;
-    /// #
-    /// # let renderer = TerminalRenderer::new(std::io::stdout());
-    /// # let config = ConfigBuilder::default().build();
-    /// #
-    /// # /*
-    /// let (runtime, _) = RenderRuntime::new(/* config, renderer */);
-    /// # */
-    /// # let (runtime, _) = RenderRuntime::new(config, renderer);
-    ///
-    /// runtime.run();
-    /// ```
     pub fn run(mut self) {
         self.store();
         self.change_loop();
@@ -199,26 +128,6 @@ where
     W: Write + Send + 'static,
     R: Renderer<W> + Send + 'static,
 {
-    /// Runs runtime on new thread.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use eired_runtime::RenderRuntime;
-    /// # use eired_runtime::terminal::TerminalRenderer;
-    /// # use eired_runtime::config::ConfigBuilder;
-    /// # use eired_runtime::task::RuntimeTask;
-    /// #
-    /// # let renderer = TerminalRenderer::new(std::io::stdout());
-    /// # let config = ConfigBuilder::default().build();
-    /// #
-    /// # /*
-    /// let (runtime, _) = RenderRuntime::new(/* config, renderer */);
-    /// # */
-    /// # let (runtime, _) = RenderRuntime::new(config, renderer);
-    ///
-    /// let handle = runtime.spawn();
-    /// ```
     pub fn spawn(self) -> JoinHandle<()> {
         thread::spawn(move || self.run())
     }
