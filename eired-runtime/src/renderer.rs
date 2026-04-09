@@ -82,7 +82,7 @@ impl RenderOptimizer {
             ranges.push((start, i));
         }
 
-        (!ranges.is_empty()).then_some(Diff {
+        (!ranges.is_empty() || new_cursor.is_some()).then_some(Diff {
             ranges,
             cursor: new_cursor,
         })
@@ -118,7 +118,7 @@ impl Diff {
             .map(|range| {
                 let cells = &buffer.inner.as_slice()[range.0..range.1];
                 let cols = range.0 as u16 % buffer.width + base_cols;
-                let rows = range.1 as u16 / buffer.width + base_rows;
+                let rows = range.0 as u16 / buffer.width + base_rows;
 
                 VisualSpan::new((cols, rows), cells)
             })

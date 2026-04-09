@@ -175,7 +175,9 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                 }
             }
 
-            if let (Some(buffer), Some(diff)) = (buffer.take(), diff.take()) {
+            if let Some(diff) = diff.take()
+                && let Some(buffer) = buffer.take()
+            {
                 running = self.renderer.render(&self.config, &buffer, diff).is_ok();
 
                 self.optimizer.cache(Some(buffer), cursor_diff.take());

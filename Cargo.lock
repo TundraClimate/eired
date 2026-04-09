@@ -173,6 +173,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "examples"
+version = "0.1.0"
+dependencies = [
+ "crossbeam",
+ "crossterm",
+ "eired",
+ "eired-display",
+ "eired-runtime",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.181"
 source = "registry+https://github.com/rust-lang/crates.io-index"

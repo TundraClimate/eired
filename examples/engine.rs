@@ -1,13 +1,14 @@
 use eired::TuiEngine;
 use eired_display::Annotate;
 use eired_display::Span;
-use eired_display::View;
 
 fn main() {
     let engine = TuiEngine::default();
 
     engine.run(|frame| {
-        frame.overlap(View::new(3, 3, Span::from("AAABBBCCC").to_vec()).annotate((1, 1)));
+        frame.draw(Span::from("AAA").annotate((1, 1)));
+        frame.draw(Span::from("BBB").annotate((1, 2)));
+        frame.draw(Span::from("CCC").annotate((1, 3)));
 
         frame.show_cursor();
         frame.cursor_move_to(4, 3);
@@ -16,7 +17,9 @@ fn main() {
 
         std::thread::sleep(std::time::Duration::from_secs(3));
 
-        frame.overlap(View::new(3, 3, Span::from("AAABBBCCC").to_vec()).annotate((1, 1)));
+        frame.draw(Span::from("AAA").annotate((1, 1)));
+        frame.draw(Span::from("BBB").annotate((1, 2)));
+        frame.draw(Span::from("CCC").annotate((1, 3)));
 
         frame.hide_cursor();
 

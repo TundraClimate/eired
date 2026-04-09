@@ -177,7 +177,7 @@ impl Frame {
         self.cursor_vis = Some(false);
     }
 
-    pub fn overlap<T: Annotate + Into<Vec<Cell>>>(&mut self, cells: Annot<T>) {
+    pub fn draw<T: Annotate + Into<Vec<Cell>>>(&mut self, cells: Annot<T>) {
         self.canvas.draw(cells);
     }
 
