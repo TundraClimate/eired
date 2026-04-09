@@ -1,79 +1,12 @@
 use std::io::{self, Write};
-use std::mem;
 
-use eired_display::{Annot, Annotate, Span, VTerm};
+use eired_display::VisualSpan;
 
+use crate::Canvas;
 use crate::config::RuntimeConfig;
 
-#[derive(Clone, Debug)]
-pub struct Diff {
-    spans: Vec<Annot<Span>>,
-    cursor: Option<VisCursor>,
-}
-
-impl Diff {
-    pub fn new(spans: Vec<Annot<Span>>, cursor: Option<VisCursor>) -> Self {
-        Self { spans, cursor }
-    }
-
-    pub fn into_vec(self) -> Vec<Annot<Span>> {
-        self.spans
-    }
-
-    pub fn cursor(&self) -> Option<VisCursor> {
-        self.cursor
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct VisCursor {
-    cursor: (u16, u16),
-    cursor_vis: bool,
-}
-
-impl VisCursor {
-    fn new(cursor: (u16, u16), cursor_vis: bool) -> Self {
-        Self { cursor, cursor_vis }
-    }
-
-    pub fn get_at(&self) -> (u16, u16) {
-        self.cursor
-    }
-
-    pub fn is_visible(&self) -> bool {
-        self.cursor_vis
-    }
-}
-
-impl TryFrom<(&VTerm, Option<VisCursor>)> for Diff {
-    type Error = &'static str;
-
-    fn try_from(value: (&VTerm, Option<VisCursor>)) -> Result<Self, Self::Error> {
-        let cursor = value.1;
-        let value = value.0;
-        let cells = value.to_vec();
-
-        if cells.is_empty() {
-            return Err("value size is zero");
-        }
-
-        if cells.len() != (value.width() * value.height()).into() {
-            return Err("value size is incorrect");
-        }
-
-        let spans = cells
-            .chunks(value.width().into())
-            .map(|cs| Span::from_iter(cs.iter().copied()))
-            .enumerate()
-            .map(|(i, span)| span.annotate((0, i as u16)))
-            .collect();
-
-        Ok(Self { spans, cursor })
-    }
-}
-
 pub trait Renderer<W: Write> {
-    fn render(&mut self, config: &RuntimeConfig, diff: Diff) -> io::Result<()>;
+    fn render(&mut self, config: &RuntimeConfig, canvas: &Canvas, diff: Diff) -> io::Result<()>;
 
     fn store(&mut self, config: &RuntimeConfig) -> io::Result<()>;
 
@@ -81,17 +14,20 @@ pub trait Renderer<W: Write> {
 }
 
 pub(crate) struct RenderOptimizer {
-    prev_cells: Option<VTerm>,
+    prev_canvas: Option<Canvas>,
     prev_cursor: Option<VisCursor>,
 }
 
 impl RenderOptimizer {
-    pub(crate) fn replace_cache(
-        &mut self,
-        new_cells: Option<VTerm>,
-        new_cursor: Option<VisCursor>,
-    ) {
-        self.prev_cells = new_cells;
+    pub(crate) fn new() -> Self {
+        Self {
+            prev_canvas: None,
+            prev_cursor: None,
+        }
+    }
+
+    pub(crate) fn cache(&mut self, new_cells: Option<Canvas>, new_cursor: Option<VisCursor>) {
+        self.prev_canvas = new_cells;
         self.prev_cursor = new_cursor;
     }
 
@@ -100,64 +36,98 @@ impl RenderOptimizer {
         cursor: (u16, u16),
         cursor_vis: bool,
     ) -> Option<VisCursor> {
-        let Some(prev_cache) = self.prev_cursor else {
-            return Some(VisCursor::new(cursor, cursor_vis));
+        let Some(ref prev_cache) = self.prev_cursor else {
+            return Some(VisCursor { cursor, cursor_vis });
         };
 
         (prev_cache.cursor_vis != cursor_vis || prev_cache.cursor != cursor)
-            .then_some(VisCursor::new(cursor, cursor_vis))
+            .then_some(VisCursor { cursor, cursor_vis })
     }
 
     pub(crate) fn create_diff(
         &self,
-        new_term: &VTerm,
+        new_canvas: &Canvas,
         new_cursor: Option<VisCursor>,
     ) -> Option<Diff> {
-        let Some(ref prev_cache) = self.prev_cells else {
-            return Diff::try_from((new_term, new_cursor)).ok();
+        let Some(ref prev) = self.prev_canvas else {
+            return Some(Diff::new(new_canvas, new_cursor));
         };
 
-        if prev_cache.len() != new_term.len() {
-            return Diff::try_from((new_term, new_cursor)).ok();
+        if prev.inner.len() != new_canvas.inner.len() {
+            return Some(Diff::new(new_canvas, new_cursor));
         }
 
-        let cells = prev_cache.iter().zip(new_term.iter()).collect::<Vec<_>>();
-        let mut spans = vec![];
-        let mut buffer = vec![];
+        let prev = prev.inner.as_slice();
+        let new = new_canvas.inner.as_slice();
+        let width = new_canvas.width;
 
-        for (y, line) in cells.chunks(new_term.width().into()).enumerate() {
-            let y = y as u16;
-            let mut sx = None;
+        let mut start;
+        let mut i = 0;
+        let mut ranges = vec![];
 
-            for (x, (prev, new)) in line.iter().enumerate() {
-                let prev = **prev;
-                let new = **new;
+        while new.len() > i {
+            if prev[i] == new[i] {
+                i += 1;
 
-                if prev != new {
-                    if sx.is_none() {
-                        sx = Some(x as u16);
-                    }
-
-                    buffer.push(new);
-                } else if let Some(sx) = sx.take() {
-                    spans.push(Span::from_iter(mem::take(&mut buffer)).annotate((sx, y)))
-                }
+                continue;
             }
 
-            if let Some(sx) = sx.take() {
-                spans.push(Span::from_iter(mem::take(&mut buffer)).annotate((sx, y)));
+            start = i;
+            i += 1;
+
+            while new.len() > i && !(i as u16).is_multiple_of(width) && prev[i] != new[i] {
+                i += 1;
             }
+
+            ranges.push((start, i));
         }
 
-        (!spans.is_empty() || new_cursor.is_some()).then_some(Diff::new(spans, new_cursor))
+        (!ranges.is_empty()).then_some(Diff {
+            ranges,
+            cursor: new_cursor,
+        })
     }
 }
 
-impl RenderOptimizer {
-    pub(crate) fn new() -> Self {
-        Self {
-            prev_cells: None,
-            prev_cursor: None,
+pub struct Diff {
+    pub(crate) ranges: Vec<(usize, usize)>,
+    pub(crate) cursor: Option<VisCursor>,
+}
+
+impl Diff {
+    fn new(canvas: &Canvas, cursor: Option<VisCursor>) -> Self {
+        let mut ranges = vec![];
+        let mut start = 0usize;
+
+        for r in 1..=canvas.height {
+            let length = canvas.width as usize * r as usize;
+
+            ranges.push((start, length));
+            start = length;
         }
+
+        Self { ranges, cursor }
     }
+
+    pub fn draws<'a>(self, base: (u16, u16), buffer: &'a Canvas) -> Vec<VisualSpan<'a>> {
+        let base_cols = base.0;
+        let base_rows = base.1;
+
+        self.ranges
+            .into_iter()
+            .map(|range| {
+                let cells = &buffer.inner.as_slice()[range.0..range.1];
+                let cols = range.0 as u16 % buffer.width + base_cols;
+                let rows = range.1 as u16 / buffer.width + base_rows;
+
+                VisualSpan::new((cols, rows), cells)
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct VisCursor {
+    pub(crate) cursor_vis: bool,
+    pub(crate) cursor: (u16, u16),
 }

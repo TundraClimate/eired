@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crossbeam::channel::{SendError, Sender};
 
-use eired_display::{Annot, VTerm, View, Window};
+use eired_display::Annot;
 use eired_runtime::RenderRuntime;
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;

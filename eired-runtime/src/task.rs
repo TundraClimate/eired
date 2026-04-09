@@ -1,9 +1,9 @@
 use crossbeam::channel::{RecvError, Sender};
 
-use eired_display::VTerm;
+use crate::Canvas;
 
 pub enum RuntimeTask {
-    UpdateBuffer(VTerm),
+    UpdateBuffer(Canvas),
     ClearBuffer,
     ShowCursor,
     HideCursor,
@@ -15,8 +15,8 @@ pub enum RuntimeTask {
 impl RuntimeTask {
     pub(crate) fn eval(task: Result<RuntimeTask, RecvError>, ctx: TaskContext) {
         match task {
-            Ok(RuntimeTask::UpdateBuffer(vterm)) => {
-                *ctx.buffer = Some(vterm);
+            Ok(RuntimeTask::UpdateBuffer(canvas)) => {
+                *ctx.buffer = Some(canvas);
             }
             Ok(RuntimeTask::ClearBuffer) => {
                 *ctx.buffer = None;
@@ -41,7 +41,7 @@ impl RuntimeTask {
 }
 
 pub(crate) struct TaskContext<'a> {
-    pub(crate) buffer: &'a mut Option<VTerm>,
+    pub(crate) buffer: &'a mut Option<Canvas>,
     pub(crate) cursor: &'a mut Option<(u16, u16)>,
     pub(crate) cursor_vis: &'a mut bool,
     pub(crate) running: &'a mut bool,

@@ -383,7 +383,7 @@ impl From<String> for Span {
 
 impl From<&str> for Span {
     fn from(value: &str) -> Self {
-        Self::from_iter(value.chars().map(|c| Cell::from(c)))
+        Self::from_iter(value.chars().map(Cell::from))
     }
 }
 

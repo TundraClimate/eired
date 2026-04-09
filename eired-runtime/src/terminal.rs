@@ -5,6 +5,7 @@ use crossterm::cursor::{self, Hide, MoveTo, Show};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{execute, queue};
 
+use crate::Canvas;
 use crate::config::RuntimeConfig;
 use crate::renderer::{Diff, Renderer};
 
@@ -55,17 +56,17 @@ impl<W: Write> TerminalRenderer<W> {
 }
 
 impl<W: Write> Renderer<W> for TerminalRenderer<W> {
-    fn render(&mut self, config: &RuntimeConfig, diff: Diff) -> io::Result<()> {
-        let cursor = diff.cursor();
-        let cmds = eired_display::convert_to_draws(config.base_pos, diff.into_vec());
+    fn render(&mut self, config: &RuntimeConfig, canvas: &Canvas, diff: Diff) -> io::Result<()> {
+        let cursor = diff.cursor;
+        let cmds = diff.draws(config.base_pos, canvas);
 
         for cmd in cmds {
             cmd.draw(&mut self.writer)?;
         }
 
         if let Some(cursor) = cursor {
-            if cursor.is_visible() {
-                let moveto = cursor.get_at();
+            if cursor.cursor_vis {
+                let moveto = cursor.cursor;
 
                 cursor_move_to(&mut self.writer, moveto.0, moveto.1)?;
 

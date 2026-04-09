@@ -175,11 +175,10 @@ impl<W: Write, R: Renderer<W>> RenderRuntime<W, R> {
                 }
             }
 
-            if let Some(diff) = diff.take() {
-                running = self.renderer.render(&self.config, diff).is_ok();
+            if let (Some(buffer), Some(diff)) = (buffer.take(), diff.take()) {
+                running = self.renderer.render(&self.config, &buffer, diff).is_ok();
 
-                self.optimizer
-                    .replace_cache(buffer.take(), cursor_diff.take());
+                self.optimizer.cache(Some(buffer), cursor_diff.take());
             }
         }
     }
@@ -223,6 +222,7 @@ where
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct Canvas {
     width: u16,
     height: u16,
