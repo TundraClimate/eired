@@ -186,21 +186,13 @@ impl From<(u16, u16)> for Point {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Cell {
-    ch: char,
-    style: Style,
+    pub ch: char,
+    pub style: Style,
 }
 
 impl Cell {
     pub fn new(ch: char, style: Style) -> Self {
         Self { ch, style }
-    }
-
-    pub fn ch(&self) -> char {
-        self.ch
-    }
-
-    pub fn style(&self) -> Style {
-        self.style
     }
 }
 
