@@ -1,6 +1,4 @@
-use eired::TuiEngine;
-use eired_display::Annotate;
-use eired_display::Span;
+use eired::{Annotate, Span, TuiEngine};
 
 fn main() {
     let engine = TuiEngine::default();

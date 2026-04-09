@@ -7,11 +7,12 @@ use std::sync::Arc;
 
 use crossbeam::channel::{SendError, Sender};
 
-use eired_display::{Annot, Annotate, Cell, Point};
+pub use eired_display::*;
+pub use eired_runtime::*;
+
 use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 use eired_runtime::task::RuntimeTask;
-use eired_runtime::terminal::{self, TerminalRenderer};
-use eired_runtime::{Canvas, RenderRuntime};
+use eired_runtime::terminal::TerminalRenderer;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

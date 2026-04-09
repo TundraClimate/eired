@@ -5,9 +5,7 @@ publish = false
 edition.workspace = true
 
 [dependencies]
-eired-display = { path = "../eired-display" }
-eired-runtime = { path = "../eired-runtime" }
-eired= { path = "../eired" }
+eired = { path = "../eired" }
 
 crossbeam.workspace = true
 crossterm.workspace = true
