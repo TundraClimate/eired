@@ -273,6 +273,14 @@ impl Cell {
     pub fn new(ch: char, style: Style) -> Self {
         Self { ch, style }
     }
+
+    pub fn ch(&self) -> char {
+        self.ch
+    }
+
+    pub fn style(&self) -> Style {
+        self.style
+    }
 }
 
 impl Debug for Cell {
@@ -426,8 +434,8 @@ impl VisualSpan<'_> {
     pub fn draw<W: io::Write>(&self, w: &mut W) -> io::Result<()> {
         let fmt = format!(
             "\x1b[{};{}H{}",
-            self.moveto.rows(),
-            self.moveto.cols(),
+            self.moveto.rows() + 1,
+            self.moveto.cols() + 1,
             Span::from_iter(self.span.to_vec())
         );
 
