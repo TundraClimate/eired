@@ -29,27 +29,27 @@
 //! ```
 
 /* mod annot; */
-mod canvas;
+/* mod canvas; */
 /* mod cell; */
 /* mod draw; */
-mod layer;
+/* mod layer; */
 /* mod span; */
 mod style;
-mod view;
-mod window;
+/* mod view;
+mod window; */
 
 use std::fmt::{Debug, Display};
 use std::io;
 
 /* pub use annot::{Annot, Annotate}; */
-pub use canvas::Canvas;
+/* pub use canvas::Canvas; */
 /* pub use cell::Cell; */
 /* pub use draw::{DrawableSpan, convert_to_draws}; */
-pub use layer::Layer;
+/* pub use layer::Layer; */
 /* pub use span::Span; */
 pub use style::{AnsiColor, Color, Style};
-pub use view::View;
-pub use window::{VTerm, Window, create_virtual_terminal};
+/* pub use view::View;
+pub use window::{VTerm, Window, create_virtual_terminal}; */
 
 pub struct Annot<T> {
     base: Point,

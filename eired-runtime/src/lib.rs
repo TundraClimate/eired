@@ -15,6 +15,8 @@ use config::RuntimeConfig;
 use renderer::{RenderOptimizer, Renderer};
 use task::{RuntimeTask, TaskContext};
 
+use eired_display::{Annot, Annotate, Cell, Rect, Span};
+
 /// A runtime of renderer the standalone rendering thread.
 ///
 /// The [`new`](Self::new) function returns `(Self, Sender<RuntimeTask>)`.
@@ -218,5 +220,60 @@ where
     /// ```
     pub fn spawn(self) -> JoinHandle<()> {
         thread::spawn(move || self.run())
+    }
+}
+
+pub struct Canvas {
+    width: u16,
+    height: u16,
+    inner: Span,
+}
+
+impl Canvas {
+    pub fn new(width: u16, height: u16) -> Self {
+        Self {
+            width,
+            height,
+            inner: Span::from_iter(vec![Cell::default(); (width * height) as usize]),
+        }
+    }
+
+    pub fn draw<T: Annotate + Into<Vec<Cell>>>(&mut self, paint: Annot<T>) {
+        if paint.has_zero() {
+            return;
+        }
+
+        let paint_base = paint.base();
+        let (paint_width, paint_height) = paint.get_size();
+        let mut paint = paint.into_inner().into();
+
+        let rect = Rect::new(self.width, self.height).annotate((0, 0));
+
+        if !rect.contains(paint_base) || paint.len() != (paint_width * paint_height) as usize {
+            return;
+        }
+
+        let truncated_width = paint_width.min(self.width - paint_base.cols()) as usize;
+        let truncated_height = paint_height.min(self.height - paint_base.rows()) as usize;
+
+        let dest_slice = self.inner.as_mut_slice();
+
+        for r in 0..truncated_height {
+            let dest_grand_pads = (self.width * (paint_base.rows() + r as u16)) as usize;
+
+            let src_row_pads = r * paint_width as usize;
+            let dst_row_pads = dest_grand_pads + paint_base.cols() as usize;
+
+            let src = &mut paint[src_row_pads..src_row_pads + truncated_width];
+            let dst = &mut dest_slice[dst_row_pads..dst_row_pads + truncated_width];
+
+            src.swap_with_slice(dst);
+        }
+    }
+}
+
+impl Annotate for Canvas {
+    fn get_size(&self) -> (u16, u16) {
+        (self.width, self.height)
     }
 }
