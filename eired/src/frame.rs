@@ -3,7 +3,10 @@ use std::sync::Arc;
 
 use crossbeam::channel::Sender;
 
-use crate::{Annot, Canvas, Error, Point, RuntimeTask, Widget};
+use crate::Error;
+use crate::runtime::RuntimeTask;
+use crate::terminal::{Annot, Point};
+use crate::widget::{Canvas, Widget};
 
 pub struct Frame {
     canvas: Canvas,

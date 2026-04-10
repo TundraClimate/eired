@@ -1,86 +1,36 @@
 #![allow(dead_code)]
 
+mod error;
 mod frame;
-mod tui_config;
+mod tui;
 
-use std::io::{self, Stdout, Write};
-use std::process;
-
-use crossbeam::channel::{SendError, Sender};
-
-pub use eired_display::*;
-pub use eired_runtime::*;
-
-use config::{ConfigBuilder, RuntimeConfig};
-use frame::Frame;
-use task::RuntimeTask;
-use terminal::TerminalRenderer;
-use tui_config::TuiConfig;
-
-pub type Result<T> = std::result::Result<T, Error>;
-
-pub enum Error {
-    Io(io::Error),
-    Send(SendError<RuntimeTask>),
+pub mod style {
+    pub use eired_display::{AnsiColor, Color, Style};
 }
 
-fn handle_err(err: Error) {
-    match err {
-        Error::Io(_) => process::exit(5),
-        Error::Send(_) => process::exit(1),
-    }
+pub mod config {
+    pub use eired_runtime::config::{ConfigBuilder, RuntimeConfig};
 }
 
-pub struct TuiEngine<W: Write> {
-    runtime: RenderRuntime<W, TerminalRenderer<W>>,
-    frame: Frame,
-    tx: Sender<RuntimeTask>,
+pub mod terminal {
+    pub use eired_display::{Annot, Annotate, Cell, Point, Rect, VisualSpan};
+    pub use eired_runtime::renderer::Renderer;
+    pub use eired_runtime::terminal::TerminalRenderer;
+
+    pub use eired_runtime::terminal::{cursor_move_to, cursor_pos, get_size};
 }
 
-impl<W: Write + Send + 'static> TuiEngine<W> {
-    pub fn run<F: FnOnce(&mut Frame) -> Result<()>>(mut self, process: F) {
-        let tx = self.tx;
-        let handle = self.runtime.spawn();
+pub mod runtime {
+    pub use eired_runtime::RenderRuntime;
+    pub use eired_runtime::task::RuntimeTask;
 
-        let procs =
-            process(&mut self.frame).and_then(|_| tx.send(RuntimeTask::Close).map_err(Error::Send));
-
-        if let Err(e) = procs {
-            handle_err(e);
-        }
-
-        handle.join().ok();
-    }
-
-    pub fn run_lazy<F: FnOnce(&mut Frame) -> Result<()> + Send + 'static>(
-        mut self,
-        process: F,
-    ) -> impl Future<Output = ()> {
-        let tx = self.tx;
-        let handle = self.runtime.spawn();
-
-        async move {
-            let procs = process(&mut self.frame)
-                .and_then(|_| tx.send(RuntimeTask::Close).map_err(Error::Send));
-
-            if let Err(e) = procs {
-                handle_err(e);
-            }
-
-            handle.join().ok();
-        }
-    }
+    pub use crate::frame::Frame;
 }
 
-impl Default for TuiEngine<Stdout> {
-    fn default() -> Self {
-        let config = TuiConfig::default();
-        let size = config.size();
-        let config = config.into();
-        let renderer = TerminalRenderer::new(io::stdout());
-        let (runtime, tx) = RenderRuntime::new(config, renderer);
-        let frame = Frame::new(size, tx.clone());
-
-        Self { runtime, frame, tx }
-    }
+pub mod widget {
+    pub use eired_display::Span;
+    pub use eired_runtime::{Canvas, Widget};
 }
+
+pub use error::{Error, Result};
+pub use tui::{TuiConfig, TuiEngine};
