@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Display};
 use std::io;
+use std::slice::Iter;
+use std::vec::IntoIter;
 
 use crate::{Annotate, Cell, Point, Style};
 
@@ -27,6 +29,10 @@ impl Span {
 
     pub fn as_mut_slice(&mut self) -> &mut [Cell] {
         &mut self.inner
+    }
+
+    pub fn iter(&self) -> Iter<'_, Cell> {
+        self.inner.iter()
     }
 
     pub fn to_vec(&self) -> Vec<Cell> {
@@ -79,6 +85,24 @@ impl From<String> for Span {
 impl From<&str> for Span {
     fn from(value: &str) -> Self {
         Self::from_iter(value.chars().map(Cell::from))
+    }
+}
+
+impl<'a> IntoIterator for &'a Span {
+    type Item = &'a Cell;
+    type IntoIter = Iter<'a, Cell>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl IntoIterator for Span {
+    type Item = Cell;
+    type IntoIter = IntoIter<Cell>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
     }
 }
 

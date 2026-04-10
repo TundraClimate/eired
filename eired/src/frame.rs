@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crossbeam::channel::Sender;
 
-use crate::{Annot, Annotate, Canvas, Cell, Error, Point, RuntimeTask};
+use crate::{Annot, Canvas, Error, Point, RuntimeTask, Widget};
 
 pub struct Frame {
     canvas: Canvas,
@@ -70,7 +70,7 @@ impl Frame {
         self.cursor_vis = Some(false);
     }
 
-    pub fn draw<T: Annotate + Into<Vec<Cell>>>(&mut self, cells: Annot<T>) {
+    pub fn draw<T: Widget>(&mut self, cells: Annot<T>) {
         self.canvas.draw(cells);
     }
 

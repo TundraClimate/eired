@@ -133,6 +133,10 @@ where
     }
 }
 
+pub trait Widget: Annotate + IntoIterator<Item = Cell> {}
+
+impl<T: Annotate + IntoIterator<Item = Cell>> Widget for T {}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Canvas {
     width: u16,
@@ -149,14 +153,14 @@ impl Canvas {
         }
     }
 
-    pub fn draw<T: Annotate + Into<Vec<Cell>>>(&mut self, paint: Annot<T>) {
+    pub fn draw<T: Widget>(&mut self, paint: Annot<T>) {
         if paint.has_zero() {
             return;
         }
 
         let paint_base = paint.base();
         let (paint_width, paint_height) = paint.get_size();
-        let mut paint = paint.into_inner().into();
+        let mut paint = paint.into_inner().into_iter().collect::<Vec<_>>();
 
         let rect = Rect::new(self.width, self.height).annotate((0, 0));
 
