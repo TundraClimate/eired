@@ -27,10 +27,7 @@ pub mod runtime {
     pub use crate::frame::Frame;
 }
 
-pub mod widget {
-    pub use eired_display::Span;
-    pub use eired_runtime::{Canvas, Widget};
-}
+pub mod widget;
 
 pub use error::{Error, Result};
 pub use tui::{TuiConfig, TuiEngine};
