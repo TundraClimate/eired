@@ -160,6 +160,12 @@ impl AnsiColor {
     }
 }
 
+impl From<u8> for AnsiColor {
+    fn from(value: u8) -> Self {
+        unsafe { mem::transmute::<u8, Self>(value) }
+    }
+}
+
 impl From<AnsiColor> for u8 {
     fn from(value: AnsiColor) -> Self {
         value as Self
