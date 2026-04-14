@@ -3,27 +3,27 @@ use std::mem;
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Style {
-    fg: Option<Color>,
-    bg: Option<Color>,
+    fg: Option<AnsiColor>,
+    bg: Option<AnsiColor>,
 }
 
 impl Style {
-    pub fn with_fg<C: Into<Color>>(color: C) -> Self {
+    pub fn with_fg(color: AnsiColor) -> Self {
         Self::default().fg(color)
     }
 
-    pub fn with_bg<C: Into<Color>>(color: C) -> Self {
+    pub fn with_bg(color: AnsiColor) -> Self {
         Self::default().bg(color)
     }
 
-    pub fn fg<C: Into<Color>>(mut self, color: C) -> Self {
-        self.fg = Some(color.into());
+    pub fn fg(mut self, color: AnsiColor) -> Self {
+        self.fg = Some(color);
 
         self
     }
 
-    pub fn bg<C: Into<Color>>(mut self, color: C) -> Self {
-        self.bg = Some(color.into());
+    pub fn bg(mut self, color: AnsiColor) -> Self {
+        self.bg = Some(color);
 
         self
     }
@@ -32,13 +32,13 @@ impl Style {
 impl Debug for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fg = if let Some(fg) = self.fg {
-            format!("\\x1b[38;5;{}m", fg.0)
+            format!("\\x1b[38;5;{}m", fg)
         } else {
             "\\x1b[39m".to_string()
         };
 
         let bg = if let Some(bg) = self.bg {
-            format!("\\x1b[48;5;{}m", bg.0)
+            format!("\\x1b[48;5;{}m", bg)
         } else {
             "\\x1b[49m".to_string()
         };
@@ -50,13 +50,13 @@ impl Debug for Style {
 impl Display for Style {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fg = if let Some(fg) = self.fg {
-            format!("\x1b[38;5;{}m", fg.0)
+            format!("\x1b[38;5;{}m", fg)
         } else {
             "\x1b[39m".to_string()
         };
 
         let bg = if let Some(bg) = self.bg {
-            format!("\x1b[48;5;{}m", bg.0)
+            format!("\x1b[48;5;{}m", bg)
         } else {
             "\x1b[49m".to_string()
         };
@@ -65,27 +65,8 @@ impl Display for Style {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Color(u8);
-
-impl Color {
-    pub fn new(ansi: AnsiColor) -> Self {
-        Self(ansi.into())
-    }
-
-    pub fn rgb(r: u8, g: u8, b: u8) -> Self {
-        Self::new(AnsiColor::rgb(r, g, b))
-    }
-}
-
-impl From<AnsiColor> for Color {
-    fn from(value: AnsiColor) -> Self {
-        Self(value.into())
-    }
-}
-
 #[repr(u8)]
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy)]
 pub enum AnsiColor {
     Black = 0,
     DarkRed = 1,
@@ -103,8 +84,6 @@ pub enum AnsiColor {
     Magenta = 13,
     Cyan = 14,
     White = 15,
-    ColorCube(u8, u8, u8) = 16,
-    Grayscale(u8) = 17,
 }
 
 impl AnsiColor {
@@ -152,29 +131,57 @@ impl AnsiColor {
         (dr * dr + dg * dg + db * db) as u32
     }
 
+    pub fn is_colorcube(&self) -> bool {
+        let num = u8::from(*self);
+
+        232 > num && num > 15
+    }
+
+    pub fn is_grayscale(&self) -> bool {
+        u8::from(*self) > 231
+    }
+
     pub fn colorcube(r: u8, g: u8, b: u8) -> Option<Self> {
-        (r < 6 && g < 6 && b < 6).then_some(Self::ColorCube(r, g, b))
+        (r < 6 && g < 6 && b < 6).then_some(Self::colorcube_unchecked(r, g, b))
     }
 
     pub fn colorcube_unchecked(r: u8, g: u8, b: u8) -> Self {
-        Self::ColorCube(r, g, b)
+        debug_assert!(r < 6 && g < 6 && b < 6);
+        unsafe { mem::transmute::<u8, Self>(16 + 36 * r + 6 * g + b) }
     }
 
     pub fn grayscale(scale: u8) -> Option<Self> {
-        (scale < 24).then_some(Self::Grayscale(scale))
+        (scale < 24).then_some(Self::grayscale_unchecked(scale))
     }
 
     pub fn grayscale_unchecked(scale: u8) -> Self {
-        Self::Grayscale(scale)
+        debug_assert!(scale < 24);
+        unsafe { mem::transmute::<u8, Self>(232 + scale) }
     }
 }
 
 impl From<AnsiColor> for u8 {
     fn from(value: AnsiColor) -> Self {
-        match value {
-            AnsiColor::ColorCube(r, g, b) => 16 + 36 * r + 6 * g + b,
-            AnsiColor::Grayscale(scale) => 232 + scale,
-            _ => (unsafe { mem::transmute::<AnsiColor, u32>(value) }) as u8,
-        }
+        value as Self
     }
 }
+
+impl Debug for AnsiColor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", u8::from(*self))
+    }
+}
+
+impl Display for AnsiColor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", u8::from(*self))
+    }
+}
+
+impl PartialEq for AnsiColor {
+    fn eq(&self, other: &Self) -> bool {
+        u8::from(*self) == u8::from(*other)
+    }
+}
+
+impl Eq for AnsiColor {}

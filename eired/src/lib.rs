@@ -5,7 +5,7 @@ mod frame;
 mod tui;
 
 pub mod style {
-    pub use eired_display::{AnsiColor, Color, Style};
+    pub use eired_display::{AnsiColor, Style};
 }
 
 pub mod config {

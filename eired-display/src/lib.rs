@@ -73,7 +73,7 @@ use std::fmt::Debug;
 pub use annot::{Annot, Annotate};
 pub use cell::Cell;
 pub use span::{Span, VisualSpan};
-pub use style::{AnsiColor, Color, Style};
+pub use style::{AnsiColor, Style};
 
 #[derive(PartialEq, Eq)]
 pub struct Rect(pub u16, pub u16);
